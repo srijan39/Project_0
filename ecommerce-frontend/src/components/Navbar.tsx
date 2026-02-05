@@ -5,7 +5,6 @@ import { Menu, X, User } from "lucide-react";
 interface NavItem {
   label: string;
   to: string;
-  icon?: React.ReactNode;
 }
 
 const navItems: NavItem[] = [
@@ -27,35 +26,30 @@ const Navbar = () => {
   }, []);
 
   const getLinkClassName = ({ isActive }: { isActive: boolean }) =>
-    `nav-link uppercase text-nav pb-1 ${isActive ? "nav-link-active" : ""}`;
+    `uppercase text-gray-700 pb-1 ${
+      isActive ? "border-b-2 border-black font-medium" : "hover:text-black"
+    }`;
 
   const getMobileLinkClassName = ({ isActive }: { isActive: boolean }) =>
-    `block py-3 text-nav-mobile uppercase transition-colors duration-200 ${
-      isActive 
-        ? "text-foreground font-medium" 
-        : "text-muted-foreground hover:text-foreground"
+    `block py-3 uppercase ${
+      isActive ? "text-black font-medium" : "text-gray-500 hover:text-black"
     }`;
 
   return (
     <header className="sticky top-0 z-50 w-full">
-      <nav
-        className="bg-background/95 backdrop-blur-sm border-b border-border"
-        role="navigation"
-        aria-label="Main navigation"
-      >
-        <div className="container mx-auto px-4 lg:px-8">
-          <div className="flex h-nav items-center justify-between">
+      <nav className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex h-16 items-center justify-between">
             {/* Logo */}
             <NavLink
               to="/"
-              className="text-xl font-medium tracking-wider uppercase text-foreground transition-opacity hover:opacity-70"
-              aria-label="Go to homepage"
+              className="text-xl font-semibold uppercase tracking-wider"
             >
               Atelier
             </NavLink>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-8 lg:gap-12">
+            {/* Desktop links */}
+            <div className="hidden md:flex gap-10">
               {navItems.map((item) => (
                 <NavLink
                   key={item.to}
@@ -67,73 +61,52 @@ const Navbar = () => {
               ))}
             </div>
 
-            {/* Desktop Profile & Actions */}
-            <div className="hidden md:flex items-center gap-6">
-              <NavLink
-                to="/profile"
-                className={getLinkClassName}
-                aria-label="View profile"
-              >
-                <span className="flex items-center gap-2">
-                  <User className="h-4 w-4" strokeWidth={1.5} />
-                  <span className="sr-only md:not-sr-only">Profile</span>
-                </span>
+            {/* Profile */}
+            <div className="hidden md:flex">
+              <NavLink to="/profile" className={getLinkClassName}>
+                <User className="h-4 w-4" />
               </NavLink>
             </div>
 
-            {/* Mobile Menu Button */}
+            {/* Mobile button */}
             <button
-              type="button"
-              className="md:hidden p-2 -mr-2 text-foreground transition-opacity hover:opacity-70"
+              className="md:hidden"
               onClick={toggleMobileMenu}
-              aria-expanded={isMobileMenuOpen}
-              aria-controls="mobile-menu"
-              aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-label="Toggle menu"
             >
               {isMobileMenuOpen ? (
-                <X className="h-5 w-5" strokeWidth={1.5} />
+                <X className="h-6 w-6" />
               ) : (
-                <Menu className="h-5 w-5" strokeWidth={1.5} />
+                <Menu className="h-6 w-6" />
               )}
             </button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile menu */}
         {isMobileMenuOpen && (
-          <div
-            id="mobile-menu"
-            className="md:hidden border-t border-border mobile-menu-enter"
-            role="menu"
-            aria-orientation="vertical"
-          >
-            <div className="container mx-auto px-4 py-4">
-              <div className="flex flex-col space-y-1">
-                {navItems.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    className={getMobileLinkClassName}
-                    onClick={closeMobileMenu}
-                    role="menuitem"
-                  >
-                    {item.label}
-                  </NavLink>
-                ))}
-                <div className="pt-3 mt-3 border-t border-border">
-                  <NavLink
-                    to="/profile"
-                    className={getMobileLinkClassName}
-                    onClick={closeMobileMenu}
-                    role="menuitem"
-                  >
-                    <span className="flex items-center gap-3">
-                      <User className="h-4 w-4" strokeWidth={1.5} />
-                      Profile
-                    </span>
-                  </NavLink>
+          <div className="md:hidden border-t border-gray-200">
+            <div className="px-4 py-4 space-y-1">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={getMobileLinkClassName}
+                  onClick={closeMobileMenu}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+              <NavLink
+                to="/profile"
+                className={getMobileLinkClassName}
+                onClick={closeMobileMenu}
+              >
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Profile
                 </div>
-              </div>
+              </NavLink>
             </div>
           </div>
         )}
