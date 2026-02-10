@@ -64,7 +64,7 @@ const Navbar = () => {
             {/* Profile */}
             <div className="hidden md:flex">
               <NavLink to="/profile" className={getLinkClassName}>
-                <User className="h-4 w-4" />
+                <User className="h-6 w-5" />
               </NavLink>
             </div>
 

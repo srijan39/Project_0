@@ -1,7 +1,18 @@
-export default function Home() {
+import Hero from "../components/Hero";
+// import ProductCard from "../components/ProductCard";
+// import { products } from "../data/products";
+// import { NavLink } from "react-router-dom";
+
+const Home = () => {
+  // const featuredProducts = products.slice(0, 8);
+
   return (
-    <div className="p-6 text-2xl font-semibold">
-      Home Page
-    </div>
-  )
-}
+    <main>
+      <Hero />
+
+      {/* rest of the sections remain same */}
+    </main>
+  );
+};
+
+export default Home;
