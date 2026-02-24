@@ -42,7 +42,7 @@ const Cart = () => {
 
       {/* CTA */}
       <a
-        href="/"
+        href="/Products"
         className="bg-black text-white px-8 py-3 text-sm uppercase tracking-wide hover:bg-gray-800 transition"
       >
         Continue Shopping
