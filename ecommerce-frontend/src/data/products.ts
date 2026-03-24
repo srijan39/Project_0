@@ -22,7 +22,8 @@ export const products: Product[] = [
     ],
     description:
       "A premium black leather jacket designed for a bold, refined look with everyday comfort and timeless appeal.",
-    sizes: ["S", "M", "L", "XL"],
+    sizes: ["S", "M", "L", "XL","XXL"],
+    
     features: [
       "Premium faux leather finish",
       "Soft inner lining",
@@ -39,6 +40,7 @@ export const products: Product[] = [
     images: [
       "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633",
       "https://images.unsplash.com/photo-1520975954732-35dd22299614",
+      "https://images.unsplash.com/photo-1542272604-787c3835535d",
     ],
     description:
       "A crisp white formal shirt tailored for clean styling, office wear, and versatile everyday elegance.",

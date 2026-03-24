@@ -38,7 +38,7 @@ const ProductDetails = () => {
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
 
-  const colors = ["Black", "White", "Beige"];
+  const colors = ["Black", "White", "Beige","Navy Blue"];
 
   if (!product) {
     return (
