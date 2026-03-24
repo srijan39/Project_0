@@ -80,6 +80,7 @@ const TestimonialsSection = () => {
 
   return (
     <section className="bg-white py-24">
+      
       <div className="mb-16 px-6 text-center md:px-12">
         <h2 className="mb-4 text-2xl font-semibold uppercase tracking-wide">
           What Our Customers Say

@@ -7,16 +7,19 @@ const CategorySection = () => {
       label: "Men",
       link: "/men",
       desc: "Sharp essentials and modern fits",
+      image: "https://images.unsplash.com/photo-1520975954732-35dd22299614",
     },
     {
       label: "Women",
       link: "/women",
       desc: "Elegant pieces for every moment",
+      image: "https://images.unsplash.com/photo-1485462537746-965f33f7f6a7",
     },
     {
       label: "Kids",
       link: "/kids",
       desc: "Comfortable styles made playful",
+      image: "https://images.unsplash.com/photo-1519238263530-99bdd11df2ea",
     },
   ];
 
@@ -45,14 +48,27 @@ const CategorySection = () => {
               className="group block"
             >
               <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg">
-                <div className="relative flex h-72 items-end bg-gray-100 p-8">
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent opacity-80 transition duration-300 group-hover:opacity-100" />
+                
+                {/* Image Container */}
+                <div className="relative h-72 overflow-hidden">
+                  
+                  {/* Image */}
+                  <img
+                    src={category.image}
+                    alt={category.label}
+                    className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-110"
+                  />
 
-                  <div className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-black shadow-sm transition duration-300 group-hover:scale-105">
+                  {/* Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent transition duration-300" />
+
+                  {/* Icon */}
+                  <div className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-black shadow-sm transition duration-300 group-hover:scale-105">
                     <ArrowUpRight size={18} />
                   </div>
 
-                  <div className="relative z-10 text-left text-white">
+                  {/* Content */}
+                  <div className="absolute bottom-0 z-10 p-8 text-white">
                     <p className="mb-2 text-xs uppercase tracking-[0.28em] text-white/70">
                       Collection
                     </p>
@@ -69,6 +85,7 @@ const CategorySection = () => {
                       Explore Now
                     </span>
                   </div>
+
                 </div>
               </div>
             </Link>

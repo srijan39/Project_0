@@ -4,7 +4,10 @@ import ProductCard from "../components/ProductCard";
 import { Link } from "react-router-dom";
 import TestimonialsSection from "../components/home/TestimonialsSection";
 import CategorySection from "../components/home/CategorySection";
+import FeaturedSecion from "../components/home/FeaturedSection";
+import TrustSecion from "../components/home/TrustSection";
 import CollectionGrid from "../components/CollectionGrid";
+import TrustSection from "../components/home/TrustSection";
 const Home = () => {
   const featuredProducts = products.slice(0, 4);
 
@@ -16,31 +19,10 @@ const Home = () => {
 
       {/* ================= COLLECTION GRID ================= */}
       <CollectionGrid/>
+      {/* ================= TRUST SECTION ================= */}
+      <TrustSection/>
       {/* ================= FEATURED PRODUCTS ================= */}
-      <section className="py-24 px-6 md:px-12">
-        <div className="max-w-7xl mx-auto">
-
-          <div className="flex justify-between items-center mb-12">
-            <h2 className="text-2xl font-semibold uppercase tracking-wide">
-              Featured Collection
-            </h2>
-
-            <Link
-              to="/products"
-              className="text-sm uppercase tracking-wide hover:underline"
-            >
-              View All
-            </Link>
-          </div>
-
-          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-
-        </div>
-      </section>
+      <FeaturedSecion/>
 
       {/* ================= Shop by Category ================= */}
        <CategorySection/>
