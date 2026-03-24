@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 
 const Cart = () => {
@@ -9,80 +10,94 @@ const Cart = () => {
   );
 
   if (cart.length === 0) {
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
-      
-      {/* Icon */}
-      <div className="w-24 h-24 flex items-center justify-center rounded-full bg-gray-100 mb-8">
-        <svg
-          className="w-10 h-10 text-gray-400"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          viewBox="0 0 24 24"
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
+        <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100">
+          <svg
+            className="h-10 w-10 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 4h12m-9 0a1 1 0 102 0m6 0a1 1 0 102 0"
+            />
+          </svg>
+        </div>
+
+        <h2 className="mb-3 text-2xl font-semibold">
+          Your cart is empty
+        </h2>
+
+        <p className="mb-8 max-w-md text-gray-500">
+          Looks like you haven’t added anything yet. Start exploring our
+          collection and find something you love.
+        </p>
+
+        <Link
+          to="/products"
+          className="bg-black px-8 py-3 text-sm uppercase tracking-wide text-white transition hover:bg-gray-800"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 4h12m-9 0a1 1 0 102 0m6 0a1 1 0 102 0"
-          />
-        </svg>
+          Continue Shopping
+        </Link>
       </div>
-
-      {/* Title */}
-      <h2 className="text-2xl font-semibold mb-3">
-        Your cart is empty
-      </h2>
-
-      {/* Subtitle */}
-      <p className="text-gray-500 max-w-md mb-8">
-        Looks like you haven’t added anything yet.
-        Start exploring our collection and find something you love.
-      </p>
-
-      {/* CTA */}
-      <a
-        href="/Products"
-        className="bg-black text-white px-8 py-3 text-sm uppercase tracking-wide hover:bg-gray-800 transition"
-      >
-        Continue Shopping
-      </a>
-    </div>
-  );
-}
+    );
+  }
 
   return (
-    <div className="min-h-screen px-6 md:px-12 py-12">
-      <h1 className="text-2xl font-semibold mb-10">
+    <div className="min-h-screen px-6 py-12 md:px-12">
+      <h1 className="mb-10 text-2xl font-semibold">
         Shopping Cart
       </h1>
 
-      <div className="grid md:grid-cols-3 gap-12">
-
+      <div className="grid gap-12 md:grid-cols-3">
         {/* Items */}
-        <div className="md:col-span-2 space-y-6">
-          {cart.map((item) => (
-            <div key={item.id} className="flex gap-6 border-b pb-6">
-              <img
-                src={item.image}
-                alt={item.name}
-                className="w-24 h-32 object-cover rounded-md"
-              />
+        <div className="space-y-6 md:col-span-2">
+          {cart.map((item, index) => (
+            <div
+              key={`${item.id}-${item.size || "nosize"}-${item.color || "nocolor"}-${index}`}
+              className="flex items-start gap-4 border-b pb-6"
+            >
+              {/* Clickable image */}
+              <Link
+                to={`/product/${item.id}`}
+                className="group block overflow-hidden rounded-md bg-gray-100"
+              >
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="h-24 w-20 object-cover transition duration-300 group-hover:scale-105"
+                />
+              </Link>
 
-              <div className="flex flex-col justify-between flex-1">
+              <div className="flex flex-1 flex-col justify-between">
                 <div>
-                  <h3 className="text-sm uppercase tracking-wide">
+                  <Link
+                    to={`/product/${item.id}`}
+                    className="inline-block text-sm uppercase tracking-wide transition hover:text-gray-600"
+                  >
                     {item.name}
-                  </h3>
+                  </Link>
+
                   <p className="mt-2 text-sm text-gray-600">
                     ₹{item.price}
                   </p>
+
+                  <div className="mt-2 space-y-1 text-xs text-gray-500">
+                    {item.size && <p>Size: {item.size}</p>}
+                    {item.color && <p>Color: {item.color}</p>}
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3 mt-4">
+                <div className="mt-4 flex items-center gap-3">
                   <button
-                    onClick={() => decreaseQty(item.id)}
-                    className="w-8 h-8 border rounded"
+                    onClick={() =>
+                      decreaseQty(item.id, item.size, item.color)
+                    }
+                    className="h-8 w-8 rounded border transition hover:bg-gray-50"
                   >
                     -
                   </button>
@@ -90,15 +105,19 @@ const Cart = () => {
                   <span>{item.quantity}</span>
 
                   <button
-                    onClick={() => increaseQty(item.id)}
-                    className="w-8 h-8 border rounded"
+                    onClick={() =>
+                      increaseQty(item.id, item.size, item.color)
+                    }
+                    className="h-8 w-8 rounded border transition hover:bg-gray-50"
                   >
                     +
                   </button>
 
                   <button
-                    onClick={() => removeFromCart(item.id)}
-                    className="ml-6 text-sm text-red-500"
+                    onClick={() =>
+                      removeFromCart(item.id, item.size, item.color)
+                    }
+                    className="ml-4 text-sm text-red-500 transition hover:text-red-600"
                   >
                     Remove
                   </button>
@@ -109,22 +128,52 @@ const Cart = () => {
         </div>
 
         {/* Summary */}
-        <div className="border p-6 rounded-lg h-fit">
-          <h2 className="text-sm uppercase tracking-wide mb-6">
+        <div className="h-fit rounded-lg border p-6">
+          <h2 className="mb-6 text-sm uppercase tracking-wide">
             Order Summary
           </h2>
 
-          <div className="flex justify-between mb-4">
-            <span>Subtotal</span>
+          <div className="mb-6 space-y-4">
+            {cart.map((item, index) => (
+              <div
+                key={`${item.id}-${item.size || "nosize"}-${item.color || "nocolor"}-summary-${index}`}
+                className="flex justify-between gap-4 text-sm"
+              >
+                <div>
+                  <p className="font-medium text-gray-900">
+                    {item.name}
+                  </p>
+
+                  <p className="mt-1 text-xs text-gray-500">
+                    Qty: {item.quantity}
+                    {item.size ? ` • Size: ${item.size}` : ""}
+                    {item.color ? ` • Color: ${item.color}` : ""}
+                  </p>
+                </div>
+
+                <p className="whitespace-nowrap font-medium">
+                  ₹{item.price * item.quantity}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mb-3 flex justify-between text-sm">
+            <span className="text-gray-600">Subtotal</span>
             <span>₹{subtotal}</span>
           </div>
 
-          <div className="border-t pt-4 flex justify-between font-medium">
+          <div className="mb-3 flex justify-between text-sm">
+            <span className="text-gray-600">Shipping</span>
+            <span className="text-green-600">Free</span>
+          </div>
+
+          <div className="flex justify-between border-t pt-4 text-base font-semibold">
             <span>Total</span>
             <span>₹{subtotal}</span>
           </div>
 
-          <button className="mt-6 w-full bg-black text-white py-3 rounded-md">
+          <button className="mt-6 w-full rounded-md bg-black py-3 text-white transition hover:bg-gray-800">
             Proceed to Checkout
           </button>
         </div>

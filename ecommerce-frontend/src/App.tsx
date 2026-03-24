@@ -8,7 +8,7 @@ import Womens from "./pages/Womens"
 import Kids from "./pages/Kids"
 import Products from "./pages/Products"
 import Cart from "./pages/Cart"
-
+import ProductDetails from "./pages/ProductDetails";
 function App() {
   return (
     <BrowserRouter>
@@ -20,6 +20,7 @@ function App() {
         <Route path="/women" element={<Womens />} />
         <Route path="/kids" element={<Kids />} />
         <Route path="/products" element={<Products />} />
+        <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<Cart />} />
       </Routes>
       <Footer />
