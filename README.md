@@ -57,8 +57,8 @@ Project_0/
 │   │   └── utils/
 │
 ├── ecommerce-admin/   # Not implemented yet
-Current Status
 
+Current Status
 -- Frontend is actively developed and functional
 -- Backend APIs are partially implemented
 -- Admin panel is planned but not developed yet
