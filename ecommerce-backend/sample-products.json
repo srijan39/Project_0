@@ -1,0 +1,587 @@
+[
+  {
+    "name": "Men Classic Oxford Shirt",
+    "category": "men",
+    "price": 1299,
+    "image": "https://example.com/images/men-classic-oxford-shirt.jpg",
+    "images": [
+      "https://example.com/images/men-classic-oxford-shirt-1.jpg",
+      "https://example.com/images/men-classic-oxford-shirt-2.jpg"
+    ],
+    "description": "A crisp cotton oxford shirt designed for everyday office wear and smart casual outings.",
+    "sizes": ["S", "M", "L", "XL"],
+    "features": ["100% cotton", "Button-down collar", "Regular fit"]
+  },
+  {
+    "name": "Men Slim Fit Chino Trousers",
+    "category": "men",
+    "price": 1799,
+    "image": "https://example.com/images/men-slim-fit-chino-trousers.jpg",
+    "images": [
+      "https://example.com/images/men-slim-fit-chino-trousers-1.jpg",
+      "https://example.com/images/men-slim-fit-chino-trousers-2.jpg"
+    ],
+    "description": "Versatile slim fit chinos with a soft stretch finish for comfort through long days.",
+    "sizes": ["30", "32", "34", "36", "38"],
+    "features": ["Stretch fabric", "Side pockets", "Slim fit"]
+  },
+  {
+    "name": "Men Lightweight Running Shoes",
+    "category": "men",
+    "price": 2999,
+    "image": "https://example.com/images/men-lightweight-running-shoes.jpg",
+    "images": [
+      "https://example.com/images/men-lightweight-running-shoes-1.jpg",
+      "https://example.com/images/men-lightweight-running-shoes-2.jpg"
+    ],
+    "description": "Breathable running shoes with cushioned soles for daily training and weekend runs.",
+    "sizes": ["7", "8", "9", "10", "11"],
+    "features": ["Mesh upper", "Cushioned midsole", "Grip outsole"]
+  },
+  {
+    "name": "Men Denim Trucker Jacket",
+    "category": "men",
+    "price": 2499,
+    "image": "https://example.com/images/men-denim-trucker-jacket.jpg",
+    "images": [
+      "https://example.com/images/men-denim-trucker-jacket-1.jpg",
+      "https://example.com/images/men-denim-trucker-jacket-2.jpg"
+    ],
+    "description": "A rugged denim trucker jacket with classic seams and practical chest pockets.",
+    "sizes": ["S", "M", "L", "XL"],
+    "features": ["Durable denim", "Chest pockets", "Button closure"]
+  },
+  {
+    "name": "Men Performance Polo Tee",
+    "category": "men",
+    "price": 999,
+    "image": "https://example.com/images/men-performance-polo-tee.jpg",
+    "images": [
+      "https://example.com/images/men-performance-polo-tee-1.jpg",
+      "https://example.com/images/men-performance-polo-tee-2.jpg"
+    ],
+    "description": "A breathable polo tee made for casual Fridays, travel, and light activity.",
+    "sizes": ["S", "M", "L", "XL", "XXL"],
+    "features": ["Moisture wicking", "Ribbed collar", "Soft hand feel"]
+  },
+  {
+    "name": "Men Leather Chelsea Boots",
+    "category": "men",
+    "price": 4999,
+    "image": "https://example.com/images/men-leather-chelsea-boots.jpg",
+    "images": [
+      "https://example.com/images/men-leather-chelsea-boots-1.jpg",
+      "https://example.com/images/men-leather-chelsea-boots-2.jpg"
+    ],
+    "description": "Polished leather Chelsea boots with elastic side panels and a sturdy stacked heel.",
+    "sizes": ["7", "8", "9", "10", "11"],
+    "features": ["Genuine leather", "Elastic gussets", "Pull tab"]
+  },
+  {
+    "name": "Men Cotton Crew Neck Sweatshirt",
+    "category": "men",
+    "price": 1599,
+    "image": "https://example.com/images/men-cotton-crew-neck-sweatshirt.jpg",
+    "images": [
+      "https://example.com/images/men-cotton-crew-neck-sweatshirt-1.jpg",
+      "https://example.com/images/men-cotton-crew-neck-sweatshirt-2.jpg"
+    ],
+    "description": "A soft crew neck sweatshirt for relaxed layering in cool weather.",
+    "sizes": ["S", "M", "L", "XL"],
+    "features": ["Brushed fleece", "Ribbed cuffs", "Relaxed fit"]
+  },
+  {
+    "name": "Men Tapered Stretch Jeans",
+    "category": "men",
+    "price": 2199,
+    "image": "https://example.com/images/men-tapered-stretch-jeans.jpg",
+    "images": [
+      "https://example.com/images/men-tapered-stretch-jeans-1.jpg",
+      "https://example.com/images/men-tapered-stretch-jeans-2.jpg"
+    ],
+    "description": "Tapered jeans with subtle stretch and a clean dark wash for everyday styling.",
+    "sizes": ["30", "32", "34", "36", "38"],
+    "features": ["Stretch denim", "Five-pocket styling", "Tapered leg"]
+  },
+  {
+    "name": "Men Quilted Bomber Jacket",
+    "category": "men",
+    "price": 3499,
+    "image": "https://example.com/images/men-quilted-bomber-jacket.jpg",
+    "images": [
+      "https://example.com/images/men-quilted-bomber-jacket-1.jpg",
+      "https://example.com/images/men-quilted-bomber-jacket-2.jpg"
+    ],
+    "description": "A quilted bomber jacket with light insulation and a clean city-ready profile.",
+    "sizes": ["S", "M", "L", "XL"],
+    "features": ["Light insulation", "Zip closure", "Ribbed hem"]
+  },
+  {
+    "name": "Men Graphic Cotton T-Shirt",
+    "category": "men",
+    "price": 699,
+    "image": "https://example.com/images/men-graphic-cotton-t-shirt.jpg",
+    "images": [
+      "https://example.com/images/men-graphic-cotton-t-shirt-1.jpg",
+      "https://example.com/images/men-graphic-cotton-t-shirt-2.jpg"
+    ],
+    "description": "A soft cotton graphic t-shirt with a relaxed silhouette for daily wear.",
+    "sizes": ["S", "M", "L", "XL", "XXL"],
+    "features": ["Cotton jersey", "Printed front", "Crew neck"]
+  },
+  {
+    "name": "Men Formal Brogue Shoes",
+    "category": "men",
+    "price": 3999,
+    "image": "https://example.com/images/men-formal-brogue-shoes.jpg",
+    "images": [
+      "https://example.com/images/men-formal-brogue-shoes-1.jpg",
+      "https://example.com/images/men-formal-brogue-shoes-2.jpg"
+    ],
+    "description": "Classic brogue shoes with detailed perforations for formal and festive occasions.",
+    "sizes": ["7", "8", "9", "10", "11"],
+    "features": ["Lace-up design", "Brogue detailing", "Cushioned footbed"]
+  },
+  {
+    "name": "Men Linen Resort Shirt",
+    "category": "men",
+    "price": 1499,
+    "image": "https://example.com/images/men-linen-resort-shirt.jpg",
+    "images": [
+      "https://example.com/images/men-linen-resort-shirt-1.jpg",
+      "https://example.com/images/men-linen-resort-shirt-2.jpg"
+    ],
+    "description": "A breathable linen blend resort shirt made for warm-weather weekends.",
+    "sizes": ["S", "M", "L", "XL"],
+    "features": ["Linen blend", "Camp collar", "Relaxed fit"]
+  },
+  {
+    "name": "Men Athletic Training Shorts",
+    "category": "men",
+    "price": 899,
+    "image": "https://example.com/images/men-athletic-training-shorts.jpg",
+    "images": [
+      "https://example.com/images/men-athletic-training-shorts-1.jpg",
+      "https://example.com/images/men-athletic-training-shorts-2.jpg"
+    ],
+    "description": "Lightweight training shorts with quick-dry fabric for gym sessions and outdoor runs.",
+    "sizes": ["S", "M", "L", "XL"],
+    "features": ["Quick dry", "Elastic waistband", "Side pockets"]
+  },
+  {
+    "name": "Men Wool Blend Overcoat",
+    "category": "men",
+    "price": 5999,
+    "image": "https://example.com/images/men-wool-blend-overcoat.jpg",
+    "images": [
+      "https://example.com/images/men-wool-blend-overcoat-1.jpg",
+      "https://example.com/images/men-wool-blend-overcoat-2.jpg"
+    ],
+    "description": "A refined wool blend overcoat with a structured fit for winter layering.",
+    "sizes": ["S", "M", "L", "XL"],
+    "features": ["Wool blend", "Notched lapel", "Inner lining"]
+  },
+  {
+    "name": "Men Everyday Canvas Sneakers",
+    "category": "men",
+    "price": 1199,
+    "image": "https://example.com/images/men-everyday-canvas-sneakers.jpg",
+    "images": [
+      "https://example.com/images/men-everyday-canvas-sneakers-1.jpg",
+      "https://example.com/images/men-everyday-canvas-sneakers-2.jpg"
+    ],
+    "description": "Low-top canvas sneakers built for everyday comfort and easy casual styling.",
+    "sizes": ["7", "8", "9", "10", "11"],
+    "features": ["Canvas upper", "Rubber outsole", "Lace-up closure"]
+  },
+  {
+    "name": "Women Floral Midi Dress",
+    "category": "women",
+    "price": 2299,
+    "image": "https://example.com/images/women-floral-midi-dress.jpg",
+    "images": [
+      "https://example.com/images/women-floral-midi-dress-1.jpg",
+      "https://example.com/images/women-floral-midi-dress-2.jpg"
+    ],
+    "description": "A flowing floral midi dress with a flattering waist and soft drape.",
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "features": ["Floral print", "Midi length", "Soft lining"]
+  },
+  {
+    "name": "Women High Rise Skinny Jeans",
+    "category": "women",
+    "price": 1999,
+    "image": "https://example.com/images/women-high-rise-skinny-jeans.jpg",
+    "images": [
+      "https://example.com/images/women-high-rise-skinny-jeans-1.jpg",
+      "https://example.com/images/women-high-rise-skinny-jeans-2.jpg"
+    ],
+    "description": "High rise skinny jeans with comfortable stretch and a clean blue wash.",
+    "sizes": ["26", "28", "30", "32", "34"],
+    "features": ["High rise", "Stretch denim", "Skinny fit"]
+  },
+  {
+    "name": "Women Knit Cardigan",
+    "category": "women",
+    "price": 1799,
+    "image": "https://example.com/images/women-knit-cardigan.jpg",
+    "images": [
+      "https://example.com/images/women-knit-cardigan-1.jpg",
+      "https://example.com/images/women-knit-cardigan-2.jpg"
+    ],
+    "description": "A cozy knit cardigan with front buttons for easy layering over tees and dresses.",
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "features": ["Soft knit", "Button front", "Ribbed cuffs"]
+  },
+  {
+    "name": "Women Block Heel Sandals",
+    "category": "women",
+    "price": 2499,
+    "image": "https://example.com/images/women-block-heel-sandals.jpg",
+    "images": [
+      "https://example.com/images/women-block-heel-sandals-1.jpg",
+      "https://example.com/images/women-block-heel-sandals-2.jpg"
+    ],
+    "description": "Elegant block heel sandals with a secure ankle strap for day-to-night wear.",
+    "sizes": ["5", "6", "7", "8", "9"],
+    "features": ["Block heel", "Ankle strap", "Padded insole"]
+  },
+  {
+    "name": "Women Tailored Work Blazer",
+    "category": "women",
+    "price": 3499,
+    "image": "https://example.com/images/women-tailored-work-blazer.jpg",
+    "images": [
+      "https://example.com/images/women-tailored-work-blazer-1.jpg",
+      "https://example.com/images/women-tailored-work-blazer-2.jpg"
+    ],
+    "description": "A structured work blazer with clean lapels and a polished professional shape.",
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "features": ["Tailored fit", "Notched lapel", "Front pockets"]
+  },
+  {
+    "name": "Women Cotton V-Neck T-Shirt",
+    "category": "women",
+    "price": 599,
+    "image": "https://example.com/images/women-cotton-v-neck-t-shirt.jpg",
+    "images": [
+      "https://example.com/images/women-cotton-v-neck-t-shirt-1.jpg",
+      "https://example.com/images/women-cotton-v-neck-t-shirt-2.jpg"
+    ],
+    "description": "A lightweight cotton v-neck t-shirt with a soft finish for everyday outfits.",
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "features": ["Cotton jersey", "V-neck", "Regular fit"]
+  },
+  {
+    "name": "Women Pleated A-Line Skirt",
+    "category": "women",
+    "price": 1499,
+    "image": "https://example.com/images/women-pleated-a-line-skirt.jpg",
+    "images": [
+      "https://example.com/images/women-pleated-a-line-skirt-1.jpg",
+      "https://example.com/images/women-pleated-a-line-skirt-2.jpg"
+    ],
+    "description": "A graceful pleated A-line skirt with easy movement and a comfortable waistband.",
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "features": ["Pleated fabric", "A-line shape", "Elastic back waist"]
+  },
+  {
+    "name": "Women Cushioned Walking Shoes",
+    "category": "women",
+    "price": 2899,
+    "image": "https://example.com/images/women-cushioned-walking-shoes.jpg",
+    "images": [
+      "https://example.com/images/women-cushioned-walking-shoes-1.jpg",
+      "https://example.com/images/women-cushioned-walking-shoes-2.jpg"
+    ],
+    "description": "Comfort-focused walking shoes with lightweight cushioning and a breathable upper.",
+    "sizes": ["5", "6", "7", "8", "9"],
+    "features": ["Breathable mesh", "Cushioned sole", "Flexible outsole"]
+  },
+  {
+    "name": "Women Satin Evening Top",
+    "category": "women",
+    "price": 1299,
+    "image": "https://example.com/images/women-satin-evening-top.jpg",
+    "images": [
+      "https://example.com/images/women-satin-evening-top-1.jpg",
+      "https://example.com/images/women-satin-evening-top-2.jpg"
+    ],
+    "description": "A smooth satin evening top with a refined sheen for dinners and celebrations.",
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "features": ["Satin finish", "Relaxed drape", "Back keyhole"]
+  },
+  {
+    "name": "Women Wide Leg Linen Pants",
+    "category": "women",
+    "price": 1899,
+    "image": "https://example.com/images/women-wide-leg-linen-pants.jpg",
+    "images": [
+      "https://example.com/images/women-wide-leg-linen-pants-1.jpg",
+      "https://example.com/images/women-wide-leg-linen-pants-2.jpg"
+    ],
+    "description": "Breezy wide leg linen pants with a relaxed shape for warm-weather comfort.",
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "features": ["Linen blend", "Wide leg", "Drawstring waist"]
+  },
+  {
+    "name": "Women Faux Leather Moto Jacket",
+    "category": "women",
+    "price": 3999,
+    "image": "https://example.com/images/women-faux-leather-moto-jacket.jpg",
+    "images": [
+      "https://example.com/images/women-faux-leather-moto-jacket-1.jpg",
+      "https://example.com/images/women-faux-leather-moto-jacket-2.jpg"
+    ],
+    "description": "A sleek faux leather moto jacket with zip details and a confident cropped fit.",
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "features": ["Faux leather", "Zip pockets", "Cropped fit"]
+  },
+  {
+    "name": "Women Embroidered Kurta Set",
+    "category": "women",
+    "price": 2799,
+    "image": "https://example.com/images/women-embroidered-kurta-set.jpg",
+    "images": [
+      "https://example.com/images/women-embroidered-kurta-set-1.jpg",
+      "https://example.com/images/women-embroidered-kurta-set-2.jpg"
+    ],
+    "description": "An elegant embroidered kurta set with coordinated bottoms for festive occasions.",
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "features": ["Embroidery detail", "Matching bottoms", "Comfort fit"]
+  },
+  {
+    "name": "Women Ribbed Lounge Set",
+    "category": "women",
+    "price": 2199,
+    "image": "https://example.com/images/women-ribbed-lounge-set.jpg",
+    "images": [
+      "https://example.com/images/women-ribbed-lounge-set-1.jpg",
+      "https://example.com/images/women-ribbed-lounge-set-2.jpg"
+    ],
+    "description": "A coordinated ribbed lounge set made for relaxed days and easy travel comfort.",
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "features": ["Ribbed knit", "Two-piece set", "Soft stretch"]
+  },
+  {
+    "name": "Women Waterproof Ankle Boots",
+    "category": "women",
+    "price": 4599,
+    "image": "https://example.com/images/women-waterproof-ankle-boots.jpg",
+    "images": [
+      "https://example.com/images/women-waterproof-ankle-boots-1.jpg",
+      "https://example.com/images/women-waterproof-ankle-boots-2.jpg"
+    ],
+    "description": "Durable ankle boots with a waterproof finish and supportive soles for wet days.",
+    "sizes": ["5", "6", "7", "8", "9"],
+    "features": ["Waterproof upper", "Side zip", "Traction outsole"]
+  },
+  {
+    "name": "Women Quilted Longline Coat",
+    "category": "women",
+    "price": 5499,
+    "image": "https://example.com/images/women-quilted-longline-coat.jpg",
+    "images": [
+      "https://example.com/images/women-quilted-longline-coat-1.jpg",
+      "https://example.com/images/women-quilted-longline-coat-2.jpg"
+    ],
+    "description": "A warm quilted longline coat with a protective collar and practical pockets.",
+    "sizes": ["XS", "S", "M", "L", "XL"],
+    "features": ["Quilted insulation", "Longline fit", "Zip pockets"]
+  },
+  {
+    "name": "Kids Dino Print T-Shirt",
+    "category": "kids",
+    "price": 499,
+    "image": "https://example.com/images/kids-dino-print-t-shirt.jpg",
+    "images": [
+      "https://example.com/images/kids-dino-print-t-shirt-1.jpg",
+      "https://example.com/images/kids-dino-print-t-shirt-2.jpg"
+    ],
+    "description": "A playful cotton t-shirt with a bright dinosaur print for everyday adventures.",
+    "sizes": ["2Y", "3Y", "4Y", "5Y", "6Y"],
+    "features": ["Cotton fabric", "Fun print", "Easy crew neck"]
+  },
+  {
+    "name": "Kids Denim Dungaree Set",
+    "category": "kids",
+    "price": 1599,
+    "image": "https://example.com/images/kids-denim-dungaree-set.jpg",
+    "images": [
+      "https://example.com/images/kids-denim-dungaree-set-1.jpg",
+      "https://example.com/images/kids-denim-dungaree-set-2.jpg"
+    ],
+    "description": "A sturdy denim dungaree set with adjustable straps and a soft inner tee.",
+    "sizes": ["2Y", "3Y", "4Y", "5Y", "6Y"],
+    "features": ["Adjustable straps", "Soft tee included", "Durable denim"]
+  },
+  {
+    "name": "Kids Light-Up Sneakers",
+    "category": "kids",
+    "price": 1999,
+    "image": "https://example.com/images/kids-light-up-sneakers.jpg",
+    "images": [
+      "https://example.com/images/kids-light-up-sneakers-1.jpg",
+      "https://example.com/images/kids-light-up-sneakers-2.jpg"
+    ],
+    "description": "Comfortable kids sneakers with playful light-up soles and easy fastening straps.",
+    "sizes": ["8C", "9C", "10C", "11C", "12C"],
+    "features": ["Light-up sole", "Hook-and-loop straps", "Cushioned footbed"]
+  },
+  {
+    "name": "Kids Printed Hooded Sweatshirt",
+    "category": "kids",
+    "price": 1199,
+    "image": "https://example.com/images/kids-printed-hooded-sweatshirt.jpg",
+    "images": [
+      "https://example.com/images/kids-printed-hooded-sweatshirt-1.jpg",
+      "https://example.com/images/kids-printed-hooded-sweatshirt-2.jpg"
+    ],
+    "description": "A cozy hooded sweatshirt with a cheerful print and soft fleece interior.",
+    "sizes": ["2Y", "3Y", "4Y", "5Y", "6Y"],
+    "features": ["Soft fleece", "Front pocket", "Printed design"]
+  },
+  {
+    "name": "Kids Cotton Jogger Pants",
+    "category": "kids",
+    "price": 899,
+    "image": "https://example.com/images/kids-cotton-jogger-pants.jpg",
+    "images": [
+      "https://example.com/images/kids-cotton-jogger-pants-1.jpg",
+      "https://example.com/images/kids-cotton-jogger-pants-2.jpg"
+    ],
+    "description": "Soft cotton joggers with an elastic waist for school, play, and lounging.",
+    "sizes": ["2Y", "3Y", "4Y", "5Y", "6Y"],
+    "features": ["Elastic waist", "Ribbed cuffs", "Side pockets"]
+  },
+  {
+    "name": "Kids Party Tulle Dress",
+    "category": "kids",
+    "price": 2499,
+    "image": "https://example.com/images/kids-party-tulle-dress.jpg",
+    "images": [
+      "https://example.com/images/kids-party-tulle-dress-1.jpg",
+      "https://example.com/images/kids-party-tulle-dress-2.jpg"
+    ],
+    "description": "A charming party dress with layered tulle and a soft comfortable lining.",
+    "sizes": ["2Y", "3Y", "4Y", "5Y", "6Y"],
+    "features": ["Layered tulle", "Soft lining", "Back zip"]
+  },
+  {
+    "name": "Kids Rain Jacket",
+    "category": "kids",
+    "price": 1799,
+    "image": "https://example.com/images/kids-rain-jacket.jpg",
+    "images": [
+      "https://example.com/images/kids-rain-jacket-1.jpg",
+      "https://example.com/images/kids-rain-jacket-2.jpg"
+    ],
+    "description": "A lightweight rain jacket with a protective hood for drizzly school days.",
+    "sizes": ["2Y", "3Y", "4Y", "5Y", "6Y"],
+    "features": ["Water resistant", "Attached hood", "Snap closure"]
+  },
+  {
+    "name": "Kids Striped Polo Shirt",
+    "category": "kids",
+    "price": 699,
+    "image": "https://example.com/images/kids-striped-polo-shirt.jpg",
+    "images": [
+      "https://example.com/images/kids-striped-polo-shirt-1.jpg",
+      "https://example.com/images/kids-striped-polo-shirt-2.jpg"
+    ],
+    "description": "A neat striped polo shirt made from breathable cotton for smart casual wear.",
+    "sizes": ["2Y", "3Y", "4Y", "5Y", "6Y"],
+    "features": ["Cotton pique", "Striped pattern", "Button placket"]
+  },
+  {
+    "name": "Kids Velcro Sports Sandals",
+    "category": "kids",
+    "price": 1299,
+    "image": "https://example.com/images/kids-velcro-sports-sandals.jpg",
+    "images": [
+      "https://example.com/images/kids-velcro-sports-sandals-1.jpg",
+      "https://example.com/images/kids-velcro-sports-sandals-2.jpg"
+    ],
+    "description": "Lightweight sports sandals with adjustable straps for active summer days.",
+    "sizes": ["8C", "9C", "10C", "11C", "12C"],
+    "features": ["Adjustable straps", "Textured footbed", "Flexible sole"]
+  },
+  {
+    "name": "Kids Fleece Winter Tracksuit",
+    "category": "kids",
+    "price": 2199,
+    "image": "https://example.com/images/kids-fleece-winter-tracksuit.jpg",
+    "images": [
+      "https://example.com/images/kids-fleece-winter-tracksuit-1.jpg",
+      "https://example.com/images/kids-fleece-winter-tracksuit-2.jpg"
+    ],
+    "description": "A warm two-piece fleece tracksuit for chilly mornings and comfortable travel.",
+    "sizes": ["2Y", "3Y", "4Y", "5Y", "6Y"],
+    "features": ["Two-piece set", "Fleece lining", "Elastic cuffs"]
+  },
+  {
+    "name": "Kids Unicorn Graphic Leggings",
+    "category": "kids",
+    "price": 799,
+    "image": "https://example.com/images/kids-unicorn-graphic-leggings.jpg",
+    "images": [
+      "https://example.com/images/kids-unicorn-graphic-leggings-1.jpg",
+      "https://example.com/images/kids-unicorn-graphic-leggings-2.jpg"
+    ],
+    "description": "Stretchy graphic leggings with a colorful unicorn print for all-day play.",
+    "sizes": ["2Y", "3Y", "4Y", "5Y", "6Y"],
+    "features": ["Stretch fabric", "Elastic waistband", "Colorful print"]
+  },
+  {
+    "name": "Kids Formal Shirt And Bow Tie Set",
+    "category": "kids",
+    "price": 1699,
+    "image": "https://example.com/images/kids-formal-shirt-and-bow-tie-set.jpg",
+    "images": [
+      "https://example.com/images/kids-formal-shirt-and-bow-tie-set-1.jpg",
+      "https://example.com/images/kids-formal-shirt-and-bow-tie-set-2.jpg"
+    ],
+    "description": "A polished formal shirt set with a detachable bow tie for special occasions.",
+    "sizes": ["2Y", "3Y", "4Y", "5Y", "6Y"],
+    "features": ["Detachable bow tie", "Button cuffs", "Soft cotton blend"]
+  },
+  {
+    "name": "Kids Padded School Shoes",
+    "category": "kids",
+    "price": 1899,
+    "image": "https://example.com/images/kids-padded-school-shoes.jpg",
+    "images": [
+      "https://example.com/images/kids-padded-school-shoes-1.jpg",
+      "https://example.com/images/kids-padded-school-shoes-2.jpg"
+    ],
+    "description": "Durable school shoes with padded collars and slip-resistant soles.",
+    "sizes": ["8C", "9C", "10C", "11C", "12C"],
+    "features": ["Padded collar", "Slip-resistant sole", "Easy polish upper"]
+  },
+  {
+    "name": "Kids Reversible Puffer Vest",
+    "category": "kids",
+    "price": 2299,
+    "image": "https://example.com/images/kids-reversible-puffer-vest.jpg",
+    "images": [
+      "https://example.com/images/kids-reversible-puffer-vest-1.jpg",
+      "https://example.com/images/kids-reversible-puffer-vest-2.jpg"
+    ],
+    "description": "A lightweight reversible puffer vest for layering through changing weather.",
+    "sizes": ["2Y", "3Y", "4Y", "5Y", "6Y"],
+    "features": ["Reversible design", "Light padding", "Zip closure"]
+  },
+  {
+    "name": "Kids Soft Knit Beanie And Scarf Set",
+    "category": "kids",
+    "price": 999,
+    "image": "https://example.com/images/kids-soft-knit-beanie-and-scarf-set.jpg",
+    "images": [
+      "https://example.com/images/kids-soft-knit-beanie-and-scarf-set-1.jpg",
+      "https://example.com/images/kids-soft-knit-beanie-and-scarf-set-2.jpg"
+    ],
+    "description": "A cozy knit beanie and scarf set made for warmth during winter outings.",
+    "sizes": ["Free Size"],
+    "features": ["Two-piece set", "Soft knit", "Warm finish"]
+  }
+]

@@ -2,20 +2,22 @@ import { Router } from "express";
 import {
   getProducts,
   createProduct,
+  createProductsBulk,
   getProductById,
   updateProduct,
   deleteProduct,
 } from "../controllers/product.controller";
 import { validateProduct } from "../middleware/productValidation";
-import { protect } from "../middleware/auth.middleware";
-import { protect, adminOnly } from "../middleware/auth.middleware";
+
+import { protect, admin } from "../middleware/auth.middleware";
 const router = Router();
 
 router.get("/", getProducts);
+router.post("/bulk", protect, admin, createProductsBulk);
+router.post("/", protect, admin, validateProduct, createProduct);
 router.get("/:id", getProductById);
-router.post("/", protect, adminOnly, validateProduct, createProduct);
 
-router.put("/:id", protect, adminOnly, updateProduct);
+router.put("/:id", protect, admin, updateProduct);
 
-router.delete("/:id", protect, adminOnly, deleteProduct);
+router.delete("/:id", protect, admin, deleteProduct);
 export default router;

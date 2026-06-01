@@ -82,6 +82,31 @@ export const createProduct = asyncHandler(
     });
   }
 );
+export const createProductsBulk = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!Array.isArray(req.body)) {
+      return res.status(400).json({
+        success: false,
+        message: "Request body must be an array of products",
+      });
+    }
+
+    if (req.body.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Products array cannot be empty",
+      });
+    }
+
+    const products = await Product.insertMany(req.body);
+
+    res.status(201).json({
+      success: true,
+      count: products.length,
+      data: products,
+    });
+  }
+);
 export const getProductById = asyncHandler(
   async (req: Request, res: Response) => {
     const product = await Product.findById(req.params.id);

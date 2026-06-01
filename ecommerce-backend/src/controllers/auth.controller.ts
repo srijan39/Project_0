@@ -5,7 +5,11 @@ import User from "../models/user.model";
 import asyncHandler from "../utils/asyncHandler";
 
 const generateToken = (id: string) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET as string, {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET is not configured");
+  }
+
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
 };
@@ -45,6 +49,13 @@ export const registerUser = asyncHandler(async (req: Request, res: Response) => 
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
+  if (!email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: "Email and password are required",
+    });
+  }
+
   const user = await User.findOne({ email }).select("+password");
 
   if (!user) {
@@ -63,11 +74,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  const token = jwt.sign(
-    { id: user._id },
-    process.env.JWT_SECRET as string,
-    { expiresIn: "7d" }
-  );
+  const token = generateToken(user._id.toString());
 
   res.status(200).json({
     success: true,

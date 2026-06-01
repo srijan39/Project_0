@@ -1,16 +1,12 @@
-import { Request, Response, NextFunction } from "express";
+import { RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model";
 
-interface AuthRequest extends Request {
-  user?: any;
+interface TokenPayload extends jwt.JwtPayload {
+  id: string;
 }
 
-export const protect = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
+export const protect: RequestHandler = async (req, res, next) => {
   let token;
 
   if (
@@ -21,48 +17,59 @@ export const protect = async (
   }
 
   if (!token) {
-    return res.status(401).json({
+    res.status(401).json({
       success: false,
       message: "Not authorized, no token",
     });
+    return;
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as TokenPayload;
 
     const user = await User.findById(decoded.id).select("-password");
 
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "User not found",
       });
+      return;
     }
 
     req.user = user;
 
     next();
   } catch (error) {
-    return res.status(401).json({
+    res.status(401).json({
       success: false,
       message: "Not authorized, token failed",
     });
+    return;
   }
 };
-export const adminOnly = (req: AuthRequest, res: Response, next: NextFunction) => {
+
+export const admin: RequestHandler = (req, res, next) => {
   if (!req.user) {
-    return res.status(401).json({
+    res.status(401).json({
       success: false,
       message: "Not authorized",
     });
+    return;
   }
 
   if (req.user.role !== "admin") {
-    return res.status(403).json({
+    res.status(403).json({
       success: false,
       message: "Admin access required",
     });
+    return;
   }
 
   next();
 };
+
+export const adminOnly = admin;
