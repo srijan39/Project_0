@@ -2,3 +2,4 @@
 node_modules
 dist
 .env
+BACKEND_CODE_REPORT.md
