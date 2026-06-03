@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
 import collsample from "../assets/collsample.jpg";
+import OptimizedImage from "./OptimizedImage";
 
 /* ------------------ Data ------------------ */
 const collections = [
@@ -50,10 +51,14 @@ const CollectionGrid = () => {
 
                 {/* Image */}
                 <div className="relative aspect-[4/5] overflow-hidden bg-gray-100">
-                  <img
+                  <OptimizedImage
                     src={item.image}
                     alt={item.name}
-                    className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                    width={480}
+                    height={600}
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
+                    wrapperClassName="h-full w-full"
+                    imageClassName="transition duration-700 group-hover:scale-105"
                   />
 
                   {/* Soft overlay */}

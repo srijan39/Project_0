@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
+import OptimizedImage from "../OptimizedImage";
 
 const CategorySection = () => {
   const categories = [
@@ -53,10 +54,14 @@ const CategorySection = () => {
                 <div className="relative h-72 overflow-hidden">
                   
                   {/* Image */}
-                  <img
+                  <OptimizedImage
                     src={category.image}
                     alt={category.label}
-                    className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-110"
+                    width={900}
+                    height={576}
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    wrapperClassName="absolute inset-0 h-full w-full"
+                    imageClassName="transition duration-500 group-hover:scale-110"
                   />
 
                   {/* Overlay */}

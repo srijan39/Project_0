@@ -4,14 +4,16 @@ import Navbar from "../components/Navbar";
 
 const AdminLayout = () => {
   return (
-    <div className="flex">
+    <div className="min-h-dvh bg-slate-100 text-slate-950">
       <Sidebar />
 
-      <div className="flex-1">
+      <div className="ml-20 flex h-dvh min-w-0 flex-col overflow-hidden lg:ml-64">
         <Navbar />
 
-        <main className="p-6 bg-slate-100 min-h-screen">
-          <Outlet />
+        <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

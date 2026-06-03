@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { NavLink } from "react-router-dom";
 import { Menu, X, User, ShoppingBag } from "lucide-react";
-import { useCart } from "../context/CartContext";
+import { useCart } from "../hooks/useCart";
 
 interface NavItem {
   label: string;

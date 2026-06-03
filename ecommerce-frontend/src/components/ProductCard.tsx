@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { Product } from "../data/products";
-import { useCart } from "../context/CartContext";
+import { useCart } from "../hooks/useCart";
 import { ShoppingCart } from "lucide-react";
+import OptimizedImage from "./OptimizedImage";
 
 interface Props {
   product: Product;
@@ -52,10 +53,14 @@ const ProductCard = ({ product }: Props) => {
       className="group flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 transition duration-300 hover:shadow-lg"
     >
       <div className="aspect-[5/5] overflow-hidden bg-gray-100">
-        <img
+        <OptimizedImage
           src={product.image}
           alt={product.name}
-          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+          width={640}
+          height={640}
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          wrapperClassName="h-full w-full"
+          imageClassName="transition duration-300 group-hover:scale-105"
         />
       </div>
 

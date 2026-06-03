@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
-import { useCart } from "../context/CartContext";
+import { useCart } from "../hooks/useCart";
+import OptimizedImage from "./OptimizedImage";
 
 interface Props {
   isOpen: boolean;
@@ -45,10 +46,13 @@ const CartDrawer = ({ isOpen, onClose }: Props) => {
           ) : (
             cart.map((item) => (
               <div key={item.id} className="flex gap-4">
-                <img
+                <OptimizedImage
                   src={item.image}
                   alt={item.name}
-                  className="h-20 w-16 object-cover rounded"
+                  width={160}
+                  height={200}
+                  sizes="64px"
+                  wrapperClassName="h-20 w-16 shrink-0 rounded"
                 />
 
                 <div className="flex-1">

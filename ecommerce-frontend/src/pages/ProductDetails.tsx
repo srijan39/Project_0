@@ -9,8 +9,9 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import { products } from "../data/products";
-import { useCart } from "../context/CartContext";
+import { useCart } from "../hooks/useCart";
 import ProductCard from "../components/ProductCard";
+import OptimizedImage from "../components/OptimizedImage";
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -182,10 +183,15 @@ const ProductDetails = () => {
               onTouchEnd={handleTouchEnd}
             >
               <div className="aspect-[4/5] w-full overflow-hidden">
-                <img
+                <OptimizedImage
                   src={galleryImages[selectedImage]}
                   alt={product.name}
-                  className={`h-full w-full object-cover transition duration-200 ${
+                  width={1200}
+                  height={1500}
+                  sizes="(max-width: 1024px) 100vw, 40vw"
+                  priority
+                  wrapperClassName="h-full w-full"
+                  imageClassName={`transition duration-200 ${
                     isZoomed ? "scale-[1.6]" : "scale-100"
                   }`}
                   style={{
@@ -239,10 +245,13 @@ const ProductDetails = () => {
                     }`}
                   >
                     <div className="aspect-[4/5]">
-                      <img
+                      <OptimizedImage
                         src={image}
                         alt={`${product.name} ${index + 1}`}
-                        className="h-full w-full object-cover"
+                        width={240}
+                        height={300}
+                        sizes="96px"
+                        wrapperClassName="h-full w-full"
                       />
                     </div>
                   </button>

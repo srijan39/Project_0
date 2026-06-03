@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import OptimizedImage from "./OptimizedImage";
 
 import heroHome from "../assets/hero-men.jpg";
 
@@ -29,10 +30,18 @@ const HERO_DATA: HeroData = {
 /* ------------------ Component ------------------ */
 const Hero = () => {
   return (
-    <section
-      className="relative min-h-[90vh] flex items-center justify-center bg-cover bg-center"
-      style={{ backgroundImage: `url(${HERO_DATA.image})` }}
-    >
+    <section className="relative flex min-h-[90vh] items-center justify-center overflow-hidden bg-gray-950">
+      <OptimizedImage
+        src={HERO_DATA.image}
+        alt=""
+        width={1920}
+        height={1080}
+        sizes="100vw"
+        priority
+        wrapperClassName="absolute inset-0 h-full w-full"
+        imageClassName="scale-105"
+        aria-hidden="true"
+      />
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/60" />
 

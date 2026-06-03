@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { useCart } from "../context/CartContext";
+import { useCart } from "../hooks/useCart";
+import OptimizedImage from "../components/OptimizedImage";
 
 const Cart = () => {
   const { cart, increaseQty, decreaseQty, removeFromCart } = useCart();
@@ -66,10 +67,14 @@ const Cart = () => {
                 to={`/product/${item.id}`}
                 className="group block overflow-hidden rounded-md bg-gray-100"
               >
-                <img
+                <OptimizedImage
                   src={item.image}
                   alt={item.name}
-                  className="h-24 w-20 object-cover transition duration-300 group-hover:scale-105"
+                  width={200}
+                  height={240}
+                  sizes="80px"
+                  wrapperClassName="h-24 w-20"
+                  imageClassName="transition duration-300 group-hover:scale-105"
                 />
               </Link>
 

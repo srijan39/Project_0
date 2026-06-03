@@ -1,16 +1,11 @@
 import Hero from "../components/Hero";
-import { products } from "../data/products";
-import ProductCard from "../components/ProductCard";
 import { Link } from "react-router-dom";
 import TestimonialsSection from "../components/home/TestimonialsSection";
 import CategorySection from "../components/home/CategorySection";
 import FeaturedSecion from "../components/home/FeaturedSection";
-import TrustSecion from "../components/home/TrustSection";
 import CollectionGrid from "../components/CollectionGrid";
 import TrustSection from "../components/home/TrustSection";
 const Home = () => {
-  const featuredProducts = products.slice(0, 4);
-
   return (
     <div className="w-full">
 
