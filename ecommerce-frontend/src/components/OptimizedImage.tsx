@@ -79,13 +79,16 @@ const OptimizedImage = memo(
     onError,
     ...imageProps
   }: OptimizedImageProps) => {
-    const [currentSrc, setCurrentSrc] = useState(src);
-    const [isLoaded, setIsLoaded] = useState(() => loadedImages.has(src));
+    const [currentSrc, setCurrentSrc] = useState(() => src || fallbackSrc);
+    const [isLoaded, setIsLoaded] = useState(() =>
+      loadedImages.has(src || fallbackSrc)
+    );
 
     useEffect(() => {
-      setCurrentSrc(src);
-      setIsLoaded(loadedImages.has(src));
-    }, [src]);
+      const nextSrc = src || fallbackSrc;
+      setCurrentSrc(nextSrc);
+      setIsLoaded(loadedImages.has(nextSrc));
+    }, [fallbackSrc, src]);
 
     const avifSrcSet = useMemo(() => buildSrcSet(currentSrc, "avif"), [currentSrc]);
     const webpSrcSet = useMemo(() => buildSrcSet(currentSrc, "webp"), [currentSrc]);

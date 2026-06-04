@@ -6,6 +6,7 @@ import errorHandler from "./middleware/error.middleware";
 import authRoutes from "./routes/auth.routes";
 import cartRoutes from "./routes/cart.routes";
 import adminRoutes from "./routes/admin.routes";
+import orderRoutes from "./routes/order.routes";
 const app = express();
 
 const allowedOrigins = process.env.CORS_ORIGIN
@@ -30,6 +31,7 @@ app.get("/", (_req, res) => {
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
 app.use(notFound);
 app.use(errorHandler);

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import type { Product } from "../data/products";
+import type { Product } from "../types/product";
 import { useCart } from "../hooks/useCart";
 import { ShoppingCart } from "lucide-react";
 import OptimizedImage from "./OptimizedImage";

@@ -1,13 +1,41 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { products } from "../../data/products";
+import { getFeaturedProducts } from "../../api/products";
 import ProductCard from "../ProductCard";
+import SkeletonCard from "../SkeletonCard";
+import type { Product } from "../../types/product";
 
 const FeaturedSection = () => {
-  const featuredProducts = products.slice(0, 8);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [current, setCurrent] = useState(0);
   const [cardsPerView, setCardsPerView] = useState(4);
+
+  useEffect(() => {
+    let isActive = true;
+
+    getFeaturedProducts()
+      .then((products) => {
+        if (isActive) {
+          setFeaturedProducts(products);
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setFeaturedProducts([]);
+        }
+      })
+      .finally(() => {
+        if (isActive) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   useEffect(() => {
     const updateCardsPerView = () => {
@@ -30,11 +58,17 @@ const FeaturedSection = () => {
 
   const totalSlides = Math.ceil(featuredProducts.length / cardsPerView);
 
+  useEffect(() => {
+    setCurrent((prev) => Math.min(prev, Math.max(0, totalSlides - 1)));
+  }, [totalSlides]);
+
   const nextSlide = () => {
+    if (totalSlides === 0) return;
     setCurrent((prev) => (prev + 1) % totalSlides);
   };
 
   const prevSlide = () => {
+    if (totalSlides === 0) return;
     setCurrent((prev) => (prev - 1 + totalSlides) % totalSlides);
   };
 
@@ -72,33 +106,41 @@ const FeaturedSection = () => {
         </div>
 
         <div className="overflow-hidden">
-          <div
-            className="flex transition-transform duration-500 ease-in-out"
-            style={{
-              transform: `translateX(-${current * 100}%)`,
-            }}
-          >
-            {Array.from({ length: totalSlides }).map((_, slideIndex) => {
-              const start = slideIndex * cardsPerView;
-              const visibleProducts = featuredProducts.slice(
-                start,
-                start + cardsPerView
-              );
+          {loading ? (
+            <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <SkeletonCard key={index} />
+              ))}
+            </div>
+          ) : (
+            <div
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{
+                transform: `translateX(-${current * 100}%)`,
+              }}
+            >
+              {Array.from({ length: totalSlides }).map((_, slideIndex) => {
+                const start = slideIndex * cardsPerView;
+                const visibleProducts = featuredProducts.slice(
+                  start,
+                  start + cardsPerView
+                );
 
-              return (
-                <div
-                  key={slideIndex}
-                  className="min-w-full"
-                >
-                  <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                    {visibleProducts.map((product) => (
-                      <ProductCard key={product.id} product={product} />
-                    ))}
+                return (
+                  <div
+                    key={slideIndex}
+                    className="min-w-full"
+                  >
+                    <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                      {visibleProducts.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {totalSlides > 1 && (

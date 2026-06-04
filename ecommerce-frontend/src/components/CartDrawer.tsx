@@ -45,7 +45,7 @@ const CartDrawer = ({ isOpen, onClose }: Props) => {
             <p className="text-gray-500 text-sm">Your cart is empty.</p>
           ) : (
             cart.map((item) => (
-              <div key={item.id} className="flex gap-4">
+              <div key={`${item.id}-${item.size || "nosize"}-${item.color || "nocolor"}`} className="flex gap-4">
                 <OptimizedImage
                   src={item.image}
                   alt={item.name}
@@ -62,7 +62,7 @@ const CartDrawer = ({ isOpen, onClose }: Props) => {
                   </p>
 
                   <button
-                    onClick={() => removeFromCart(item.id)}
+                    onClick={() => removeFromCart(item.id, item.size, item.color)}
                     className="text-xs text-red-500 mt-1 hover:underline"
                   >
                     Remove

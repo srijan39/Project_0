@@ -1,18 +1,9 @@
-import { useEffect, useState } from "react";
 import ProductCard from "../components/ProductCard";
 import SkeletonCard from "../components/SkeletonCard";
-import { products } from "../data/products";
+import { useProducts } from "../hooks/useProducts";
 
 const Products = () => {
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
+  const { products, loading } = useProducts();
 
   return (
     <section className="bg-white py-16">

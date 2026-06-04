@@ -1,22 +1,9 @@
-import { useEffect, useState } from "react";
 import ProductCard from "../components/ProductCard";
 import SkeletonCard from "../components/SkeletonCard";
-import { products } from "../data/products";
+import { useProducts } from "../hooks/useProducts";
 
 const Kids = () => {
-  const [loading, setLoading] = useState(true);
-
-  const kidsProducts = products.filter(
-    (product) => product.category === "kids"
-  );
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
+  const { products: kidsProducts, loading } = useProducts({ category: "kids" });
 
   return (
     <section className="bg-white py-16">

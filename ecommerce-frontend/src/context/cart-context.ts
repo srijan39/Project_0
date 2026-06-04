@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import type { Product } from "../data/products";
+import type { Product } from "../types/product";
 
 export interface CartItem extends Product {
   quantity: number;
@@ -16,9 +16,9 @@ export interface AddToCartOptions {
 export interface CartContextType {
   cart: CartItem[];
   addToCart: (product: Product, options?: AddToCartOptions) => void;
-  removeFromCart: (id: number, size?: string, color?: string) => void;
-  increaseQty: (id: number, size?: string, color?: string) => void;
-  decreaseQty: (id: number, size?: string, color?: string) => void;
+  removeFromCart: (id: string, size?: string, color?: string) => void;
+  increaseQty: (id: string, size?: string, color?: string) => void;
+  decreaseQty: (id: string, size?: string, color?: string) => void;
 }
 
 export const CartContext = createContext<CartContextType | undefined>(undefined);

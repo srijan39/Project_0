@@ -87,3 +87,10 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     },
   });
 });
+
+export const getProfile = asyncHandler(async (req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    data: req.user,
+  });
+});

@@ -3,6 +3,8 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface ICartItem {
   product: mongoose.Types.ObjectId;
   quantity: number;
+  size?: string;
+  color?: string;
 }
 
 export interface ICart extends Document {
@@ -32,6 +34,14 @@ const cartSchema = new Schema<ICart>(
           required: true,
           min: 1,
           default: 1,
+        },
+        size: {
+          type: String,
+          trim: true,
+        },
+        color: {
+          type: String,
+          trim: true,
         },
       },
     ],

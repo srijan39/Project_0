@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ChevronLeft,
@@ -8,19 +8,18 @@ import {
   Plus,
   ShoppingCart,
 } from "lucide-react";
-import { products } from "../data/products";
+import { getProductById, getProducts } from "../api/products";
 import { useCart } from "../hooks/useCart";
 import ProductCard from "../components/ProductCard";
 import OptimizedImage from "../components/OptimizedImage";
+import type { Product } from "../types/product";
 
 const ProductDetails = () => {
   const { id } = useParams();
   const { addToCart } = useCart();
-
-  const product = useMemo(
-    () => products.find((item) => item.id === Number(id)),
-    [id]
-  );
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const galleryImages = useMemo(() => {
     if (!product) return [];
@@ -31,7 +30,7 @@ const ProductDetails = () => {
   }, [product]);
 
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedSize, setSelectedSize] = useState(product?.sizes?.[0] || "");
+  const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("Black");
   const [quantity, setQuantity] = useState(1);
   const [isZoomed, setIsZoomed] = useState(false);
@@ -40,6 +39,84 @@ const ProductDetails = () => {
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
 
   const colors = ["Black", "White", "Beige","Navy Blue"];
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (!id) {
+      setProduct(null);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setSelectedImage(0);
+
+    getProductById(id)
+      .then((data) => {
+        if (isActive) {
+          setProduct(data);
+          setSelectedSize(data.sizes[0] || "");
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setProduct(null);
+        }
+      })
+      .finally(() => {
+        if (isActive) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [id]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (!product) {
+      setRelatedProducts([]);
+      return;
+    }
+
+    getProducts({ category: product.category, limit: 5 })
+      .then((items) => {
+        if (isActive) {
+          setRelatedProducts(items.filter((item) => item.id !== product.id));
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setRelatedProducts([]);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [product]);
+
+  if (loading) {
+    return (
+      <section className="bg-white py-12 md:py-16">
+        <div className="mx-auto max-w-7xl px-6 md:px-12">
+          <div className="grid items-start gap-12 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="aspect-[4/5] rounded-2xl bg-gray-100 skeleton lg:max-w-md" />
+            <div className="space-y-4">
+              <div className="h-4 w-32 rounded skeleton" />
+              <div className="h-10 w-3/4 rounded skeleton" />
+              <div className="h-8 w-28 rounded skeleton" />
+              <div className="h-24 w-full rounded skeleton" />
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   if (!product) {
     return (
@@ -59,10 +136,6 @@ const ProductDetails = () => {
       </section>
     );
   }
-
-  const relatedProducts = products.filter(
-    (item) => item.category === product.category && item.id !== product.id
-  );
 
   const handleAddToCart = (
     e: React.MouseEvent<HTMLButtonElement>
