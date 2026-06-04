@@ -14,6 +14,7 @@ interface ProductResponse {
 interface ProductQuery {
   category?: ProductCategory;
   limit?: number;
+  search?: string;
   sort?: "price_asc" | "price_desc" | "newest" | "oldest";
 }
 
@@ -35,6 +36,7 @@ export const getProducts = async (query: ProductQuery = {}) => {
   });
 
   if (query.category) params.set("category", query.category);
+  if (query.search?.trim()) params.set("search", query.search.trim());
   if (query.sort) params.set("sort", query.sort);
 
   const response = await apiRequest<ProductsResponse>(
@@ -55,4 +57,3 @@ export const getProductById = async (id: string) => {
 
   return mapProduct(response.data);
 };
-

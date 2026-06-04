@@ -40,7 +40,7 @@ const FeaturedSection = () => {
   useEffect(() => {
     const updateCardsPerView = () => {
       if (window.innerWidth < 640) {
-        setCardsPerView(1);
+        setCardsPerView(2);
       } else if (window.innerWidth < 768) {
         setCardsPerView(2);
       } else if (window.innerWidth < 1024) {
@@ -107,7 +107,7 @@ const FeaturedSection = () => {
 
         <div className="overflow-hidden">
           {loading ? (
-            <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
               {Array.from({ length: 4 }).map((_, index) => (
                 <SkeletonCard key={index} />
               ))}
@@ -131,7 +131,7 @@ const FeaturedSection = () => {
                     key={slideIndex}
                     className="min-w-full"
                   >
-                    <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
                       {visibleProducts.map((product) => (
                         <ProductCard key={product.id} product={product} />
                       ))}

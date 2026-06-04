@@ -474,7 +474,7 @@ const ProductDetails = () => {
               You may also like
             </h2>
 
-            <div className="mt-8 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
               {relatedProducts.slice(0, 4).map((item) => (
                 <ProductCard key={item.id} product={item} />
               ))}

@@ -19,8 +19,9 @@ const Womens = () => {
         {/* Grid */}
         <div
           className="
-            grid gap-6
-            grid-cols-[repeat(auto-fit,minmax(220px,1fr))]
+            grid gap-4 sm:gap-6
+            grid-cols-2
+            sm:grid-cols-[repeat(auto-fit,minmax(220px,1fr))]
           "
         >
           {loading

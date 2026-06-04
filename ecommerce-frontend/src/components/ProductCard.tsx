@@ -64,16 +64,16 @@ const ProductCard = ({ product }: Props) => {
         />
       </div>
 
-      <div className="flex flex-grow flex-col p-5">
-        <h3 className="min-h-[40px] line-clamp-2 text-sm font-medium uppercase tracking-wide text-gray-900">
+      <div className="flex flex-grow flex-col p-3 sm:p-5">
+        <h3 className="min-h-[34px] break-words line-clamp-2 text-xs font-medium uppercase leading-snug tracking-normal text-gray-900 sm:min-h-[40px] sm:text-sm sm:tracking-wide">
           {product.name}
         </h3>
 
-        <p className="mt-1 text-sm font-semibold text-black">
+        <p className="mt-1 whitespace-nowrap text-xs font-semibold text-black sm:text-sm">
           ₹{product.price}
         </p>
 
-        <div className="mt-auto flex gap-2 pt-4">
+        <div className="mt-auto hidden gap-2 pt-4 sm:flex">
           <button
             onClick={handleAddToCart}
             className={`relative flex-1 overflow-hidden rounded-md py-2 text-sm transition-all duration-300 ease-in-out active:scale-[0.96] ${

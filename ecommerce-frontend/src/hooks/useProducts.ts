@@ -1,15 +1,27 @@
 import { useEffect, useState } from "react";
 import { getProducts } from "../api/products";
-import type { Product, ProductCategory } from "../types/product";
+import type {
+  Product,
+  ProductCategory,
+} from "../types/product";
 
 interface UseProductsOptions {
   category?: ProductCategory;
   limit?: number;
+  search?: string;
 }
 
-export const useProducts = ({ category, limit }: UseProductsOptions = {}) => {
-  const [products, setProducts] = useState<Product[]>([]);
+export const useProducts = ({
+  category,
+  limit,
+  search,
+}: UseProductsOptions = {}) => {
+  const [products, setProducts] = useState<Product[]>(
+    []
+  );
+
   const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -18,7 +30,11 @@ export const useProducts = ({ category, limit }: UseProductsOptions = {}) => {
     setLoading(true);
     setError("");
 
-    getProducts({ category, limit })
+    getProducts({
+      category,
+      limit,
+      search,
+    })
       .then((data) => {
         if (isActive) {
           setProducts(data);
@@ -26,7 +42,12 @@ export const useProducts = ({ category, limit }: UseProductsOptions = {}) => {
       })
       .catch((error) => {
         if (isActive) {
-          setError(error instanceof Error ? error.message : "Unable to load products");
+          setError(
+            error instanceof Error
+              ? error.message
+              : "Unable to load products"
+          );
+
           setProducts([]);
         }
       })
@@ -39,8 +60,11 @@ export const useProducts = ({ category, limit }: UseProductsOptions = {}) => {
     return () => {
       isActive = false;
     };
-  }, [category, limit]);
+  }, [category, limit, search]);
 
-  return { products, loading, error };
+  return {
+    products,
+    loading,
+    error,
+  };
 };
-
