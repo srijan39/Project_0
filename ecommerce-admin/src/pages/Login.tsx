@@ -207,7 +207,7 @@ const Login = () => {
         <div className="rounded-3xl border border-white/80 bg-white/85 p-6 shadow-2xl shadow-slate-300/60 backdrop-blur-xl sm:p-8">
           <div className="mb-8 text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-600">
-              Ecommerce Admin
+              Atelier Admin
             </p>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
               Admin Login
@@ -289,7 +289,7 @@ const Login = () => {
                   checked={rememberMe}
                   disabled={isLoading}
                   onChange={(event) => setRememberMe(event.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 outline-none transition focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="h-4 w-4 rounded border-slate-300  outline-none transition focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 Remember me
               </label>
