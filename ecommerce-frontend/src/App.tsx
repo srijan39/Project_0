@@ -10,9 +10,11 @@ import Products from "./pages/Products"
 import Cart from "./pages/Cart"
 import ProductDetails from "./pages/ProductDetails";
 import Orders from "./pages/Orders";
+import ScrollToTop from "./components/ScrollToTop";
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />

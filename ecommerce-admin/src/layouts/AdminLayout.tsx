@@ -10,7 +10,10 @@ const AdminLayout = () => {
       <div className="ml-20 flex h-dvh min-w-0 flex-col overflow-hidden lg:ml-64">
         <Navbar />
 
-        <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <main
+          data-route-scroll-container
+          className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden"
+        >
           <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
             <Outlet />
           </div>

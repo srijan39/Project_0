@@ -88,3 +88,50 @@ Contributing
 Author
 
 Srijan
+
+## Scroll Position Fix
+
+### Frontend
+
+* Files Added
+  * `ecommerce-frontend/src/components/ScrollToTop.tsx`
+* Files Modified
+  * `ecommerce-frontend/src/App.tsx`
+* Implementation Details
+  * Added a global `ScrollToTop` component that reads `pathname` from `useLocation()`.
+  * Mounted `ScrollToTop` once inside `BrowserRouter`, before the shared layout and route definitions.
+  * The component returns `null` and only runs a `window.scrollTo({ top: 0, left: 0, behavior: "auto" })` effect when `pathname` changes.
+  * No duplicate manual scroll reset logic was found in the frontend source.
+* Performance Impact
+  * Negligible. The component has no rendered UI, tracks only `pathname`, and performs a single browser scroll operation per route path change.
+* Test Results
+  * `npm run build` passed for `ecommerce-frontend`.
+  * Targeted lint passed for `src/App.tsx` and `src/components/ScrollToTop.tsx`.
+  * Full frontend lint still reports pre-existing `react-hooks/set-state-in-effect` errors in product/image-loading files unrelated to this scroll fix.
+
+### Admin
+
+* Files Added
+  * `ecommerce-admin/src/components/ScrollToTop.tsx`
+* Files Modified
+  * `ecommerce-admin/src/App.tsx`
+  * `ecommerce-admin/src/layouts/AdminLayout.tsx`
+* Implementation Details
+  * Added a global `ScrollToTop` component that reads `pathname` from `useLocation()`.
+  * Mounted `ScrollToTop` once inside the admin `BrowserRouter`, before admin routes.
+  * The component resets the browser window and the admin layout's scrollable main container on pathname changes.
+  * Added a non-visual `data-route-scroll-container` marker to the admin `<main>` element so nested protected routes reset the actual scroll container.
+  * No duplicate manual scroll reset logic was found in the admin source.
+* Performance Impact
+  * Negligible. The component has no rendered UI, tracks only `pathname`, and performs one window scroll plus one optional container scroll per route path change.
+* Test Results
+  * `npm run lint` passed for `ecommerce-admin`.
+  * `npm run build` passed for `ecommerce-admin`.
+  * Targeted lint passed for `src/App.tsx`, `src/components/ScrollToTop.tsx`, and `src/layouts/AdminLayout.tsx`.
+
+### Validation
+
+* Route changes now start from the top of the page in the frontend because `ScrollToTop` resets the window scroll position whenever `pathname` changes.
+* Route changes now start from the top of the admin content area because `ScrollToTop` resets both the window and the scrollable admin `<main>` container whenever `pathname` changes.
+* No UI changes occurred; the new components render `null`, and the admin layout change only adds a data attribute.
+* No API, authentication, security, performance, cart functionality, state management, lazy loading, animation, or business logic changes occurred.
