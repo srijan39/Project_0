@@ -46,8 +46,8 @@ const Hero = () => {
       <div className="absolute inset-0 bg-black/60" />
 
       {/* Content */}
-      <div className="relative z-10 max-w-3xl text-center px-4 text-white">
-        <h1 className="text-4xl md:text-6xl font-semibold uppercase tracking-widest">
+      <div className="relative z-10 w-full max-w-3xl px-4 text-center text-white">
+        <h1 className="break-words text-3xl font-semibold uppercase tracking-wide sm:text-4xl sm:tracking-widest md:text-6xl">
           {HERO_DATA.title}
         </h1>
 

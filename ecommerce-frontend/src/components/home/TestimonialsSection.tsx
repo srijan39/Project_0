@@ -113,7 +113,7 @@ const TestimonialsSection = () => {
               return (
                 <div
                   key={slideIndex}
-                  className="min-w-full px-6 md:px-12"
+                  className="w-full flex-none px-4 sm:px-6 md:px-12"
                 >
                   <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                     {visible.map((item, i) => (

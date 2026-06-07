@@ -90,17 +90,17 @@ const Navbar = () => {
     <header className="sticky top-0 z-50 bg-white">
       <nav className="border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 md:px-6">
-          <div className="flex h-16 items-center justify-between">
+          <div className="flex h-16 min-w-0 items-center justify-between">
             {/* Logo */}
             <NavLink
               to="/"
-              className="shrink-0 text-xl font-semibold uppercase tracking-[0.2em]"
+              className="shrink-0 text-lg font-semibold uppercase tracking-[0.14em] sm:text-xl sm:tracking-[0.2em]"
             >
               Atelier
             </NavLink>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-10">
+            <div className="hidden lg:flex items-center gap-10">
               {navItems.map((item) => (
                 <NavLink
                   key={item.to}
@@ -113,7 +113,7 @@ const Navbar = () => {
             </div>
 
             {/* Desktop Right Section */}
-            <div className="hidden md:flex items-center gap-6">
+            <div className="hidden lg:flex items-center gap-6">
               {/* Search */}
               <form onSubmit={handleSearch}>
                 <div className="relative">
@@ -127,7 +127,8 @@ const Navbar = () => {
                       setSearch(e.target.value)
                     }
                     className="
-                      w-64
+                      w-48
+                      lg:w-64
                       rounded-md
                       border
                       border-gray-200
@@ -170,7 +171,7 @@ const Navbar = () => {
             {/* Mobile Menu Toggle */}
             <button
               onClick={toggleMobileMenu}
-              className="md:hidden"
+              className="shrink-0 lg:hidden"
               aria-label="Toggle menu"
             >
               {isMobileMenuOpen ? (
@@ -184,7 +185,7 @@ const Navbar = () => {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="border-t border-gray-200 md:hidden">
+          <div className="border-t border-gray-200 lg:hidden">
             <div className="space-y-2 px-4 py-4">
               {/* Mobile Search */}
               <form

@@ -17,7 +17,7 @@ const Products = () => {
 
   return (
     <section className="bg-white py-16">
-      <div className="mx-auto max-w-7xl px-6 md:px-12">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-12">
         <div className="mb-10">
           <h1 className="text-3xl font-semibold tracking-tight text-gray-900">
             {search
@@ -36,7 +36,7 @@ const Products = () => {
         <div
           className="
             grid gap-4 sm:gap-6
-            grid-cols-2
+            grid-cols-[repeat(2,minmax(0,1fr))]
             sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]
           "
         >

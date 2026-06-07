@@ -75,13 +75,13 @@ const FeaturedSection = () => {
   return (
     <section className="py-24">
 
-      <div className="w-full px-6 md:px-10 xl:px-14">
-        <div className="mb-12 flex items-center justify-between gap-4">
-          <h2 className="text-2xl font-semibold uppercase tracking-wide">
+      <div className="w-full px-4 sm:px-6 md:px-10 xl:px-14">
+        <div className="mb-12 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-xl font-semibold uppercase tracking-wide sm:text-2xl">
             Featured Collection
           </h2>
         
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={prevSlide}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white transition hover:bg-gray-50"
@@ -129,7 +129,7 @@ const FeaturedSection = () => {
                 return (
                   <div
                     key={slideIndex}
-                    className="min-w-full"
+                    className="w-full flex-none"
                   >
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
                       {visibleProducts.map((product) => (
