@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
+import ProductBulkUpload from "./pages/ProductBulkUpload";
 import Users from "./pages/Users";
 
 import AdminLayout from "./layouts/AdminLayout";
@@ -32,6 +33,11 @@ function App() {
           <Route
             path="/products"
             element={<Products />}
+          />
+
+          <Route
+            path="/products/bulk"
+            element={<ProductBulkUpload />}
           />
 
           <Route

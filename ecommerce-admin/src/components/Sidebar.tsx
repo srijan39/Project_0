@@ -1,9 +1,10 @@
 import { NavLink } from "react-router-dom";
 
 const navItems = [
-  { to: "/dashboard", label: "Dashboard", shortLabel: "D" },
-  { to: "/products", label: "Products", shortLabel: "P" },
-  { to: "/users", label: "Users", shortLabel: "U" },
+  { to: "/dashboard", label: "Dashboard", shortLabel: "D", end: true },
+  { to: "/products", label: "Products", shortLabel: "P", end: true },
+  { to: "/products/bulk", label: "Bulk Upload", shortLabel: "B", end: true },
+  { to: "/users", label: "Users", shortLabel: "U", end: true },
 ];
 
 const Sidebar = () => {
@@ -24,6 +25,7 @@ const Sidebar = () => {
           <NavLink
             key={item.to}
             to={item.to}
+            end={item.end}
             title={item.label}
             className={({ isActive }) =>
               [

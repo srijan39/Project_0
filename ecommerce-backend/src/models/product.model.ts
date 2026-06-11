@@ -8,6 +8,7 @@ export interface IProduct extends Document {
   images: string[];
   description: string;
   sizes: string[];
+  colors: string[];
   features: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -49,6 +50,11 @@ const productSchema = new Schema<IProduct>(
     },
 
     sizes: {
+      type: [String],
+      default: [],
+    },
+
+    colors: {
       type: [String],
       default: [],
     },

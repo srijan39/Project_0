@@ -31,14 +31,12 @@ const ProductDetails = () => {
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState("");
-  const [selectedColor, setSelectedColor] = useState("Black");
+  const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 });
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
-
-  const colors = ["Black", "White", "Beige","Navy Blue"];
 
   useEffect(() => {
     let isActive = true;
@@ -57,6 +55,7 @@ const ProductDetails = () => {
         if (isActive) {
           setProduct(data);
           setSelectedSize(data.sizes[0] || "");
+          setSelectedColor(data.colors?.[0] ?? "");
         }
       })
       .catch(() => {
@@ -165,7 +164,7 @@ const ProductDetails = () => {
 
     addToCart(product, {
       size: selectedSize,
-      color: selectedColor,
+      color: selectedColor || undefined,
       quantity,
     });
 
@@ -372,27 +371,29 @@ const ProductDetails = () => {
               </div>
             </div>
 
-            <div className="mt-8">
-              <p className="mb-3 text-sm font-medium text-gray-900">
-                Select Color
-              </p>
+            {product.colors.length > 0 && (
+              <div className="mt-8">
+                <p className="mb-3 text-sm font-medium text-gray-900">
+                  Select Color
+                </p>
 
-              <div className="flex flex-wrap gap-3">
-                {colors.map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setSelectedColor(color)}
-                    className={`rounded-md border px-4 py-2 text-sm transition ${
-                      selectedColor === color
-                        ? "border-black bg-black text-white"
-                        : "border-gray-300 text-gray-800 hover:border-black"
-                    }`}
-                  >
-                    {color}
-                  </button>
-                ))}
+                <div className="flex flex-wrap gap-3">
+                  {product.colors.map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setSelectedColor(color)}
+                      className={`rounded-md border px-4 py-2 text-sm transition ${
+                        selectedColor === color
+                          ? "border-black bg-black text-white"
+                          : "border-gray-300 text-gray-800 hover:border-black"
+                      }`}
+                    >
+                      {color}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="mt-8">
               <p className="mb-3 text-sm font-medium text-gray-900">

@@ -305,7 +305,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-xl shadow-slate-300/80 transition duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-blue-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed disabled:translate-y-0 disabled:bg-slate-400 disabled:shadow-none"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-xl shadow-slate-300/80 transition duration-200 hover:-translate-y-0.5 hover:bg-slate-950 hover:shadow-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed disabled:translate-y-0 disabled:bg-slate-400 disabled:shadow-none"
             >
               {isLoading && <SpinnerIcon />}
               {isLoading ? "Verifying access..." : "Login"}

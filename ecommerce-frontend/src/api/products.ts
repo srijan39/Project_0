@@ -27,6 +27,7 @@ export const mapProduct = (product: BackendProduct): Product => ({
   images: product.images?.length ? product.images : [product.image],
   description: product.description,
   sizes: product.sizes || [],
+  colors: product.colors ?? [],
   features: product.features || [],
 });
 

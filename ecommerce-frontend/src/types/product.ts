@@ -9,6 +9,7 @@ export interface Product {
   images: string[];
   description: string;
   sizes: string[];
+  colors: string[];
   features: string[];
 }
 
@@ -21,6 +22,6 @@ export interface BackendProduct {
   images?: string[];
   description: string;
   sizes?: string[];
+  colors?: string[];
   features?: string[];
 }
-

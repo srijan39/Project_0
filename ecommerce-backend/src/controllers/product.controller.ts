@@ -2,6 +2,53 @@ import { Request, Response } from "express";
 import Product from "../models/product.model";
 import asyncHandler from "../utils/asyncHandler";
 
+type ProductPayload = Record<string, unknown>;
+
+const arrayFields = ["images", "sizes", "colors", "features"] as const;
+
+const normalizeStringArray = (value: unknown) => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
+const normalizeProductPayload = (
+  payload: ProductPayload,
+  includeDefaults = false
+) => {
+  const normalizedPayload = { ...payload };
+
+  arrayFields.forEach((field) => {
+    if (Array.isArray(payload[field]) || includeDefaults) {
+      normalizedPayload[field] = normalizeStringArray(payload[field]);
+    }
+  });
+
+  return normalizedPayload;
+};
+
+const serializeProduct = (product: unknown) => {
+  const productObject =
+    product &&
+    typeof product === "object" &&
+    "toObject" in product &&
+    typeof (product as { toObject: () => Record<string, unknown> }).toObject ===
+      "function"
+      ? (product as { toObject: () => Record<string, unknown> }).toObject()
+      : ({ ...(product as Record<string, unknown>) } as Record<string, unknown>);
+
+  return {
+    ...productObject,
+    images: Array.isArray(productObject.images) ? productObject.images : [],
+    sizes: Array.isArray(productObject.sizes) ? productObject.sizes : [],
+    colors: Array.isArray(productObject.colors) ? productObject.colors : [],
+    features: Array.isArray(productObject.features) ? productObject.features : [],
+  };
+};
+
 export const getProducts = asyncHandler(
   async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
@@ -68,17 +115,19 @@ export const getProducts = asyncHandler(
         maxPrice: isNaN(maxPrice) ? null : maxPrice,
         sort,
       },
-      data: products,
+      data: products.map(serializeProduct),
     });
   }
 );
 export const createProduct = asyncHandler(
   async (req: Request, res: Response) => {
-    const product = await Product.create(req.body);
+    const product = await Product.create(
+      normalizeProductPayload(req.body, true)
+    );
 
     res.status(201).json({
       success: true,
-      data: product,
+      data: serializeProduct(product),
     });
   }
 );
@@ -98,12 +147,16 @@ export const createProductsBulk = asyncHandler(
       });
     }
 
-    const products = await Product.insertMany(req.body);
+    const products = await Product.insertMany(
+      req.body.map((product: ProductPayload) =>
+        normalizeProductPayload(product, true)
+      )
+    );
 
     res.status(201).json({
       success: true,
       count: products.length,
-      data: products,
+      data: products.map(serializeProduct),
     });
   }
 );
@@ -121,7 +174,7 @@ export const getProductById = asyncHandler(
 
     res.status(200).json({
       success: true,
-      data: product,
+      data: serializeProduct(product),
     });
   }
 );
@@ -139,13 +192,13 @@ export const updateProduct = asyncHandler(
 
     const updatedProduct = await Product.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      normalizeProductPayload(req.body),
       { new: true, runValidators: true }
     );
 
     res.status(200).json({
       success: true,
-      data: updatedProduct,
+      data: serializeProduct(updatedProduct),
     });
   }
 );
