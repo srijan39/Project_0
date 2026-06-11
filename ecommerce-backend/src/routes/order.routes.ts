@@ -2,8 +2,9 @@ import express from "express";
 
 import {
   createOrder,
-  getOrders,
+  getMyOrders,
   getOrderById,
+  getAllOrders,
   updateOrderStatus,
   cancelOrder,
 } from "../controllers/order.controller";
@@ -19,20 +20,37 @@ const router = express.Router();
  * User Routes
  */
 
+// Create Order
 router.post("/", protect, createOrder);
 
-router.get("/", protect, getOrders);
+// Get Logged-in User Orders
+router.get("/my-orders", protect, getMyOrders);
 
+// Get Single Order
 router.get("/:id", protect, getOrderById);
 
-router.delete("/:id", protect, cancelOrder);
+// Cancel Order
+router.put(
+  "/:id/cancel",
+  protect,
+  cancelOrder
+);
 
 /*
  * Admin Routes
  */
 
+// Get All Orders
+router.get(
+  "/admin/all",
+  protect,
+  admin,
+  getAllOrders
+);
+
+// Update Order Status
 router.put(
-  "/:id/status",
+  "/admin/:id/status",
   protect,
   admin,
   updateOrderStatus
