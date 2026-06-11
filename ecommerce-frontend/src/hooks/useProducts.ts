@@ -27,14 +27,19 @@ export const useProducts = ({
   useEffect(() => {
     let isActive = true;
 
-    setLoading(true);
-    setError("");
+    Promise.resolve()
+      .then(() => {
+        if (isActive) {
+          setLoading(true);
+          setError("");
+        }
 
-    getProducts({
-      category,
-      limit,
-      search,
-    })
+        return getProducts({
+          category,
+          limit,
+          search,
+        });
+      })
       .then((data) => {
         if (isActive) {
           setProducts(data);

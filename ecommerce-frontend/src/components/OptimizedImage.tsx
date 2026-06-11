@@ -79,16 +79,17 @@ const OptimizedImage = memo(
     onError,
     ...imageProps
   }: OptimizedImageProps) => {
-    const [currentSrc, setCurrentSrc] = useState(() => src || fallbackSrc);
-    const [isLoaded, setIsLoaded] = useState(() =>
-      loadedImages.has(src || fallbackSrc)
+    const requestedSrc = src || fallbackSrc;
+    const [failedSrc, setFailedSrc] = useState<string | null>(null);
+    const [loadedSrc, setLoadedSrc] = useState<string | null>(() =>
+      loadedImages.has(requestedSrc) ? requestedSrc : null
     );
-
-    useEffect(() => {
-      const nextSrc = src || fallbackSrc;
-      setCurrentSrc(nextSrc);
-      setIsLoaded(loadedImages.has(nextSrc));
-    }, [fallbackSrc, src]);
+    const currentSrc =
+      failedSrc === requestedSrc && requestedSrc !== fallbackSrc
+        ? fallbackSrc
+        : requestedSrc;
+    const isLoaded =
+      loadedImages.has(currentSrc) || loadedSrc === currentSrc;
 
     const avifSrcSet = useMemo(() => buildSrcSet(currentSrc, "avif"), [currentSrc]);
     const webpSrcSet = useMemo(() => buildSrcSet(currentSrc, "webp"), [currentSrc]);
@@ -127,15 +128,14 @@ const OptimizedImage = memo(
 
     const handleLoad: ImgHTMLAttributes<HTMLImageElement>["onLoad"] = (event) => {
       loadedImages.add(currentSrc);
-      setIsLoaded(true);
+      setLoadedSrc(currentSrc);
       onLoad?.(event);
     };
 
     const handleError: ImgHTMLAttributes<HTMLImageElement>["onError"] = (event) => {
       if (currentSrc !== fallbackSrc) {
-        setCurrentSrc(fallbackSrc);
+        setFailedSrc(requestedSrc);
       }
-      setIsLoaded(true);
       onError?.(event);
     };
 

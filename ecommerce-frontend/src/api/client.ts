@@ -6,6 +6,13 @@ type RequestOptions = RequestInit & {
   auth?: boolean;
 };
 
+export interface StoredUser {
+  _id: string;
+  name: string;
+  email: string;
+  role: "user" | "admin";
+}
+
 export class ApiError extends Error {
   status: number;
 
@@ -19,11 +26,42 @@ export class ApiError extends Error {
 export const getStoredToken = () =>
   localStorage.getItem("token") || sessionStorage.getItem("token");
 
-const clearStoredSession = () => {
+export const getStoredUser = (): StoredUser | null => {
+  const storedUser =
+    localStorage.getItem("user") || sessionStorage.getItem("user");
+
+  if (!storedUser) return null;
+
+  try {
+    return JSON.parse(storedUser) as StoredUser;
+  } catch {
+    return null;
+  }
+};
+
+export const setStoredSession = (
+  token: string,
+  user: StoredUser,
+  persist = true
+) => {
+  const storage = persist ? localStorage : sessionStorage;
+  const inactiveStorage = persist ? sessionStorage : localStorage;
+
+  inactiveStorage.removeItem("token");
+  inactiveStorage.removeItem("user");
+  storage.setItem("token", token);
+  storage.setItem("user", JSON.stringify(user));
+};
+
+export const clearStoredSession = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
   sessionStorage.removeItem("token");
   sessionStorage.removeItem("user");
+};
+
+export const notifySessionExpired = () => {
+  window.dispatchEvent(new Event("auth:session-expired"));
 };
 
 export const apiRequest = async <T>(
@@ -42,10 +80,19 @@ export const apiRequest = async <T>(
     requestHeaders.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...requestOptions,
-    headers: requestHeaders,
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...requestOptions,
+      headers: requestHeaders,
+    });
+  } catch {
+    throw new ApiError(
+      "Unable to reach the server. Please check your connection and try again.",
+      0
+    );
+  }
 
   if (response.status >= 500 && retry) {
     return apiRequest<T>(path, { ...options, retry: false });
@@ -54,8 +101,9 @@ export const apiRequest = async <T>(
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
+    if (auth && (response.status === 401 || response.status === 403)) {
       clearStoredSession();
+      notifySessionExpired();
     }
 
     throw new ApiError(
@@ -66,4 +114,3 @@ export const apiRequest = async <T>(
 
   return data as T;
 };
-

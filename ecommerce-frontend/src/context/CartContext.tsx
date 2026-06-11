@@ -9,44 +9,81 @@ import {
 import type { Product } from "../types/product";
 import { CartContext } from "./cart-context";
 import type { AddToCartOptions, CartItem } from "./cart-context";
+import { useAuth } from "../hooks/useAuth";
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartState, setCartState] = useState<{
+    userId: string | null;
+    items: CartItem[];
+  }>({
+    userId: null,
+    items: [],
+  });
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const cart =
+    isAuthenticated && user && cartState.userId === user._id
+      ? cartState.items
+      : [];
 
   useEffect(() => {
     let isActive = true;
 
+    if (authLoading) {
+      return () => {
+        isActive = false;
+      };
+    }
+
+    if (!isAuthenticated || !user) {
+      return () => {
+        isActive = false;
+      };
+    }
+
     getCart()
       .then((items) => {
         if (isActive) {
-          setCart(items);
+          setCartState({
+            userId: user._id,
+            items,
+          });
         }
       })
       .catch(() => {
         if (isActive) {
-          setCart((current) => current);
+          setCartState((current) => current);
         }
       });
 
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [authLoading, isAuthenticated, user]);
 
   const syncCart = (request: Promise<CartItem[]>) => {
+    if (!isAuthenticated || !user) return;
+
     request
-      .then((items) => setCart(items))
+      .then((items) =>
+        setCartState({
+          userId: user._id,
+          items,
+        })
+      )
       .catch(() => {
-        setCart((current) => current);
+        setCartState((current) => current);
       });
   };
 
   const addToCart = (product: Product, options?: AddToCartOptions) => {
+    if (!isAuthenticated || !user) return;
+
     const size = options?.size;
     const color = options?.color;
     const quantity = options?.quantity ?? 1;
 
-    setCart((prev) => {
+    setCartState((current) => {
+      const prev = current.userId === user._id ? current.items : [];
       const existing = prev.find(
         (item) =>
           item.id === product.id &&
@@ -55,45 +92,61 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       );
 
       if (existing) {
-        return prev.map((item) =>
-          item.id === product.id &&
-          item.size === size &&
-          item.color === color
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
+        return {
+          userId: user._id,
+          items: prev.map((item) =>
+            item.id === product.id &&
+            item.size === size &&
+            item.color === color
+              ? { ...item, quantity: item.quantity + quantity }
+              : item
+          ),
+        };
       }
 
-      return [
-        ...prev,
-        {
-          ...product,
-          quantity,
-          size,
-          color,
-        },
-      ];
+      return {
+        userId: user._id,
+        items: [
+          ...prev,
+          {
+            ...product,
+            quantity,
+            size,
+            color,
+          },
+        ],
+      };
     });
 
     syncCart(addCartItem(product.id, quantity, size, color));
   };
 
   const removeFromCart = (id: string, size?: string, color?: string) => {
-    setCart((prev) =>
-      prev.filter(
-        (item) =>
-          !(
-            item.id === id &&
-            item.size === size &&
-            item.color === color
-          )
-      )
-    );
+    if (!isAuthenticated || !user) return;
+
+    if (user) {
+      setCartState((current) => ({
+        userId: user._id,
+        items:
+          current.userId === user._id
+            ? current.items.filter(
+                (item) =>
+                  !(
+                    item.id === id &&
+                    item.size === size &&
+                    item.color === color
+                  )
+              )
+            : [],
+      }));
+    }
 
     syncCart(removeCartItem(id, size, color));
   };
 
   const increaseQty = (id: string, size?: string, color?: string) => {
+    if (!isAuthenticated || !user) return;
+
     const currentItem = cart.find(
       (item) =>
         item.id === id &&
@@ -102,20 +155,28 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     );
     const nextQuantity = (currentItem?.quantity || 0) + 1;
 
-    setCart((prev) =>
-      prev.map((item) =>
-        item.id === id &&
-        item.size === size &&
-        item.color === color
-          ? { ...item, quantity: nextQuantity }
-          : item
-      )
-    );
+    if (user) {
+      setCartState((current) => ({
+        userId: user._id,
+        items:
+          current.userId === user._id
+            ? current.items.map((item) =>
+                item.id === id &&
+                item.size === size &&
+                item.color === color
+                  ? { ...item, quantity: nextQuantity }
+                  : item
+              )
+            : [],
+      }));
+    }
 
     syncCart(updateCartItem(id, nextQuantity, size, color));
   };
 
   const decreaseQty = (id: string, size?: string, color?: string) => {
+    if (!isAuthenticated || !user) return;
+
     const currentItem = cart.find(
       (item) =>
         item.id === id &&
@@ -124,17 +185,23 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     );
     const nextQuantity = Math.max(0, (currentItem?.quantity || 0) - 1);
 
-    setCart((prev) =>
-      prev
-        .map((item) =>
-          item.id === id &&
-          item.size === size &&
-          item.color === color
-            ? { ...item, quantity: nextQuantity }
-            : item
-        )
-        .filter((item) => item.quantity > 0)
-    );
+    if (user) {
+      setCartState((current) => ({
+        userId: user._id,
+        items:
+          current.userId === user._id
+            ? current.items
+                .map((item) =>
+                  item.id === id &&
+                  item.size === size &&
+                  item.color === color
+                    ? { ...item, quantity: nextQuantity }
+                    : item
+                )
+                .filter((item) => item.quantity > 0)
+            : [],
+      }));
+    }
 
     syncCart(updateCartItem(id, nextQuantity, size, color));
   };

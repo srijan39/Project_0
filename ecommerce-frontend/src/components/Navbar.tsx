@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { useCart } from "../hooks/useCart";
+import { useAuth } from "../hooks/useAuth";
 
 interface NavItem {
   label: string;
@@ -31,6 +32,8 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const { cart } = useCart();
+  const { isAuthenticated } = useAuth();
+  const profilePath = isAuthenticated ? "/profile" : "/login";
 
   const cartCount = cart.reduce(
     (total, item) => total + item.quantity,
@@ -161,7 +164,7 @@ const Navbar = () => {
 
               {/* Profile */}
               <NavLink
-                to="/profile"
+                to={profilePath}
                 className="text-gray-700 transition hover:text-black"
               >
                 <User className="h-5 w-5" />
@@ -230,13 +233,13 @@ const Navbar = () => {
               ))}
 
               <NavLink
-                to="/profile"
+                to={profilePath}
                 className={getMobileLinkClassName}
                 onClick={closeMobileMenu}
               >
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  Profile
+                  {isAuthenticated ? "Profile" : "Login"}
                 </div>
               </NavLink>
 

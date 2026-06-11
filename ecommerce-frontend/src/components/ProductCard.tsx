@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { Product } from "../types/product";
 import { useCart } from "../hooks/useCart";
+import { useAuth } from "../hooks/useAuth";
 import { ShoppingCart } from "lucide-react";
 import OptimizedImage from "./OptimizedImage";
 
@@ -11,6 +12,9 @@ interface Props {
 
 const ProductCard = ({ product }: Props) => {
   const { addToCart } = useCart();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [added, setAdded] = useState(false);
 
   const handleAddToCart = (
@@ -18,6 +22,11 @@ const ProductCard = ({ product }: Props) => {
   ) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: location } });
+      return;
+    }
 
     const button = e.currentTarget;
 

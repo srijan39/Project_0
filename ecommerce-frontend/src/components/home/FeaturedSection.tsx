@@ -57,10 +57,7 @@ const FeaturedSection = () => {
   }, []);
 
   const totalSlides = Math.ceil(featuredProducts.length / cardsPerView);
-
-  useEffect(() => {
-    setCurrent((prev) => Math.min(prev, Math.max(0, totalSlides - 1)));
-  }, [totalSlides]);
+  const visibleSlide = Math.min(current, Math.max(0, totalSlides - 1));
 
   const nextSlide = () => {
     if (totalSlides === 0) return;
@@ -116,7 +113,7 @@ const FeaturedSection = () => {
             <div
               className="flex transition-transform duration-500 ease-in-out"
               style={{
-                transform: `translateX(-${current * 100}%)`,
+                transform: `translateX(-${visibleSlide * 100}%)`,
               }}
             >
               {Array.from({ length: totalSlides }).map((_, slideIndex) => {
@@ -150,7 +147,7 @@ const FeaturedSection = () => {
                 key={index}
                 onClick={() => setCurrent(index)}
                 className={`h-2 rounded-full transition-all duration-300 ${
-                  current === index ? "w-8 bg-black" : "w-2 bg-gray-300"
+                  visibleSlide === index ? "w-8 bg-black" : "w-2 bg-gray-300"
                 }`}
               />
             ))}

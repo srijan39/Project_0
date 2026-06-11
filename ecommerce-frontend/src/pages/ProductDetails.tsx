@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { getProductById, getProducts } from "../api/products";
 import { useCart } from "../hooks/useCart";
+import { useAuth } from "../hooks/useAuth";
 import ProductCard from "../components/ProductCard";
 import OptimizedImage from "../components/OptimizedImage";
 import type { Product } from "../types/product";
@@ -17,6 +18,9 @@ import type { Product } from "../types/product";
 const ProductDetails = () => {
   const { id } = useParams();
   const { addToCart } = useCart();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,21 +45,25 @@ const ProductDetails = () => {
   useEffect(() => {
     let isActive = true;
 
-    if (!id) {
-      setProduct(null);
-      setLoading(false);
-      return;
-    }
+    Promise.resolve()
+      .then(() => {
+        if (!id) {
+          return null;
+        }
 
-    setLoading(true);
-    setSelectedImage(0);
+        if (isActive) {
+          setLoading(true);
+          setSelectedImage(0);
+        }
 
-    getProductById(id)
+        return getProductById(id);
+      })
       .then((data) => {
         if (isActive) {
           setProduct(data);
-          setSelectedSize(data.sizes[0] || "");
-          setSelectedColor(data.colors?.[0] ?? "");
+          setRelatedProducts([]);
+          setSelectedSize(data?.sizes[0] || "");
+          setSelectedColor(data?.colors?.[0] ?? "");
         }
       })
       .catch(() => {
@@ -78,7 +86,6 @@ const ProductDetails = () => {
     let isActive = true;
 
     if (!product) {
-      setRelatedProducts([]);
       return;
     }
 
@@ -141,6 +148,11 @@ const ProductDetails = () => {
   ) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: location } });
+      return;
+    }
 
     const button = e.currentTarget;
 
