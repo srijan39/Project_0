@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import cors from "cors";
 import productRoutes from "./routes/product.routes";
@@ -7,11 +9,11 @@ import authRoutes from "./routes/auth.routes";
 import cartRoutes from "./routes/cart.routes";
 import adminRoutes from "./routes/admin.routes";
 import orderRoutes from "./routes/order.routes";
-
+import uploadRoutes from "./routes/upload.routes";
 const app = express();
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
-  : ["http://localhost:5173", "http://localhost:5174"];
+  : ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"];
 
 app.use(
   cors({
@@ -28,6 +30,7 @@ app.get("/", (_req, res) => {
     message: "Ecommerce API Running",
   });
 });
+app.use("/api/upload", uploadRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);

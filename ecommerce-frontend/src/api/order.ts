@@ -11,15 +11,36 @@ export interface OrderItem {
   price: number;
 }
 
+export interface ShippingAddress {
+  fullName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+}
+
+export type OrderStatus =
+  | "pending"
+  | "processing"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
+
+export type PaymentStatus = "pending" | "paid" | "failed";
+
 export interface Order {
   _id: string;
   user: string;
   items: OrderItem[];
+  shippingAddress?: ShippingAddress;
   subtotal: number;
   shippingFee: number;
   totalAmount: number;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
-  paymentStatus: "pending" | "paid" | "failed";
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -36,7 +57,7 @@ interface OrderResponse {
 }
 
 export const getOrders = async () => {
-  return apiRequest<OrdersResponse>("/orders");
+  return apiRequest<OrdersResponse>("/orders/my-orders");
 };
 
 export const getOrderById = async (id: string) => {
@@ -46,5 +67,11 @@ export const getOrderById = async (id: string) => {
 export const createOrder = async () => {
   return apiRequest<OrderResponse>("/orders", {
     method: "POST",
+  });
+};
+
+export const cancelOrder = async (id: string) => {
+  return apiRequest<OrderResponse>(`/orders/${id}/cancel`, {
+    method: "PUT",
   });
 };

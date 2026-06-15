@@ -6,6 +6,7 @@ import {
   getProducts,
   updateProduct,
 } from "../api/products";
+import { uploadImage } from "../api/upload";
 import { getApiErrorMessage } from "../api/axios";
 import type { Product, ProductCategory, ProductInput } from "../types/product";
 import OptimizedImage from "../components/OptimizedImage";
@@ -27,7 +28,7 @@ interface ProductFormState {
   category: ProductCategory;
   price: string;
   image: string;
-  images: string;
+  images: string[];
   description: string;
   sizes: string;
   colors: string;
@@ -43,7 +44,7 @@ const emptyFormState: ProductFormState = {
   category: "men",
   price: "",
   image: "",
-  images: "",
+  images: [],
   description: "",
   sizes: "",
   colors: "",
@@ -59,6 +60,8 @@ const currencyFormatter = new Intl.NumberFormat("en-IN", {
 const formatCategory = (category: string) =>
   category ? category.charAt(0).toUpperCase() + category.slice(1) : "Unlisted";
 
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
 const parseList = (value: string) =>
   value
     .split(",")
@@ -70,7 +73,7 @@ const serializeProduct = (formState: ProductFormState): ProductInput => ({
   category: formState.category,
   price: Number(formState.price),
   image: formState.image.trim(),
-  images: parseList(formState.images),
+  images: formState.images,
   description: formState.description.trim(),
   sizes: parseList(formState.sizes),
   colors: parseList(formState.colors),
@@ -82,7 +85,7 @@ const productToFormState = (product: Product): ProductFormState => ({
   category: product.category,
   price: String(product.price),
   image: product.image,
-  images: product.images?.join(", ") ?? "",
+  images: product.images ?? [],
   description: product.description,
   sizes: product.sizes?.join(", ") ?? "",
   colors: product.colors?.join(", ") ?? "",
@@ -97,6 +100,18 @@ const validateForm = (formState: ProductFormState) => {
   if (!formState.description.trim()) return "Description is required";
   if (!Number.isFinite(price) || price < 0) {
     return "Price must be a positive number";
+  }
+
+  return "";
+};
+
+const validateImageFile = (file: File) => {
+  if (!file.type.startsWith("image/")) {
+    return `${file.name} is not a supported image file.`;
+  }
+
+  if (file.size > MAX_IMAGE_SIZE) {
+    return `${file.name} is larger than 5 MB.`;
   }
 
   return "";
@@ -190,8 +205,14 @@ interface ProductFormModalProps {
   formState: ProductFormState;
   mode: FormMode;
   isSaving: boolean;
+  isUploading: boolean;
+  uploadMessage: string;
   errorMessage: string;
   onChange: (field: keyof ProductFormState, value: string) => void;
+  onUploadMainImage: (file: File | undefined) => void;
+  onUploadGalleryImages: (files: FileList | null) => void;
+  onRemoveMainImage: () => void;
+  onRemoveGalleryImage: (imageUrl: string) => void;
   onClose: () => void;
   onSubmit: () => void;
 }
@@ -200,8 +221,14 @@ const ProductFormModal = ({
   formState,
   mode,
   isSaving,
+  isUploading,
+  uploadMessage,
   errorMessage,
   onChange,
+  onUploadMainImage,
+  onUploadGalleryImages,
+  onRemoveMainImage,
+  onRemoveGalleryImage,
   onClose,
   onSubmit,
 }: ProductFormModalProps) => (
@@ -213,11 +240,12 @@ const ProductFormModal = ({
             {mode === "create" ? "Add Product" : "Edit Product"}
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Use commas for images, sizes, colors, and features.
+            Use uploads for images and commas for sizes, colors, and features.
           </p>
         </div>
         <button
           onClick={onClose}
+          disabled={isUploading}
           className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
         >
           Close
@@ -273,26 +301,130 @@ const ProductFormModal = ({
               className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
             />
           </label>
-
-          <label className="space-y-1.5 text-sm font-medium text-slate-700">
-            <span>Main Image URL</span>
-            <input
-              value={formState.image}
-              onChange={(event) => onChange("image", event.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-            />
-          </label>
         </div>
 
-        <label className="block space-y-1.5 text-sm font-medium text-slate-700">
-          <span>Gallery Images</span>
-          <input
-            value={formState.images}
-            onChange={(event) => onChange("images", event.target.value)}
-            placeholder="https://image-one, https://image-two"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-          />
-        </label>
+        <div className="space-y-3 rounded-lg border border-slate-200 p-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-700">Main Image</p>
+              <p className="mt-0.5 text-xs text-slate-400">
+                Upload one image under 5 MB.
+              </p>
+            </div>
+
+            <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+              {formState.image ? "Replace Image" : "Choose Image"}
+              <input
+                type="file"
+                accept="image/*"
+                disabled={isUploading}
+                className="sr-only"
+                onChange={(event) => {
+                  onUploadMainImage(event.target.files?.[0]);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
+          </div>
+
+          {formState.image ? (
+            <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+              <OptimizedImage
+                src={formState.image}
+                alt="Main product preview"
+                width={640}
+                height={360}
+                sizes="(max-width: 768px) calc(100vw - 88px), 640px"
+                wrapperClassName="w-full"
+              />
+              <div className="flex items-center justify-between gap-3 px-3 py-2">
+                <p className="truncate text-xs text-slate-500">{formState.image}</p>
+                <button
+                  type="button"
+                  onClick={onRemoveMainImage}
+                  disabled={isUploading}
+                  className="shrink-0 rounded-md border border-red-100 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">
+              No main image uploaded
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3 rounded-lg border border-slate-200 p-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-700">Gallery Images</p>
+              <p className="mt-0.5 text-xs text-slate-400">
+                Upload multiple images under 5 MB each.
+              </p>
+            </div>
+
+            <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+              Add Images
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                disabled={isUploading}
+                className="sr-only"
+                onChange={(event) => {
+                  onUploadGalleryImages(event.target.files);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
+          </div>
+
+          {formState.images.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+              {formState.images.map((imageUrl) => (
+                <div
+                  key={imageUrl}
+                  className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
+                >
+                  <OptimizedImage
+                    src={imageUrl}
+                    alt="Gallery product preview"
+                    width={320}
+                    height={240}
+                    sizes="(max-width: 768px) calc(50vw - 56px), 220px"
+                    wrapperClassName="w-full"
+                  />
+                  <div className="flex items-center justify-between gap-2 px-2 py-2">
+                    <p className="truncate text-xs text-slate-500">{imageUrl}</p>
+                    <button
+                      type="button"
+                      onClick={() => onRemoveGalleryImage(imageUrl)}
+                      disabled={isUploading}
+                      className="shrink-0 rounded-md border border-red-100 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">
+              No gallery images uploaded
+            </div>
+          )}
+        </div>
+
+        {uploadMessage && (
+          <div
+            role="status"
+            className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700"
+          >
+            {uploadMessage}
+          </div>
+        )}
 
         <label className="block space-y-1.5 text-sm font-medium text-slate-700">
           <span>Description</span>
@@ -340,16 +472,19 @@ const ProductFormModal = ({
           <button
             type="button"
             onClick={onClose}
+            disabled={isUploading}
             className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             Cancel
           </button>
           <button
             type="submit"
-            disabled={isSaving}
+            disabled={isSaving || isUploading}
             className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSaving
+            {isUploading
+              ? "Uploading..."
+              : isSaving
               ? "Saving..."
               : mode === "create"
                 ? "Create Product"
@@ -369,6 +504,8 @@ const Products = () => {
   const [formErrorMessage, setFormErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
@@ -440,6 +577,7 @@ const Products = () => {
     setEditingProductId(null);
     setFormState(emptyFormState);
     setFormErrorMessage("");
+    setUploadMessage("");
     setIsFormOpen(true);
   };
 
@@ -447,6 +585,7 @@ const Products = () => {
     setFormMode("edit");
     setEditingProductId(id);
     setFormErrorMessage("");
+    setUploadMessage("");
     setErrorMessage("");
     setIsSaving(true);
 
@@ -476,10 +615,11 @@ const Products = () => {
   };
 
   const closeForm = () => {
-    if (isSaving) return;
+    if (isSaving || isUploading) return;
 
     setIsFormOpen(false);
     setFormErrorMessage("");
+    setUploadMessage("");
   };
 
   const updateFormField = (field: keyof ProductFormState, value: string) => {
@@ -489,7 +629,89 @@ const Products = () => {
     }));
   };
 
+  const handleMainImageUpload = async (file: File | undefined) => {
+    if (!file || isUploading) return;
+
+    const validationMessage = validateImageFile(file);
+
+    if (validationMessage) {
+      setFormErrorMessage(validationMessage);
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadMessage("Uploading image...");
+    setFormErrorMessage("");
+
+    try {
+      const response = await uploadImage(file);
+      updateFormField("image", response.url);
+    } catch (error) {
+      setFormErrorMessage(getApiErrorMessage(error));
+    } finally {
+      setIsUploading(false);
+      setUploadMessage("");
+    }
+  };
+
+  const handleGalleryImagesUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0 || isUploading) return;
+
+    const selectedFiles = Array.from(files);
+    const validationMessage = selectedFiles
+      .map(validateImageFile)
+      .find(Boolean);
+
+    if (validationMessage) {
+      setFormErrorMessage(validationMessage);
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadMessage(
+      selectedFiles.length === 1
+        ? "Uploading image..."
+        : `Uploading ${selectedFiles.length} images...`
+    );
+    setFormErrorMessage("");
+
+    try {
+      const uploadedImages = await Promise.all(
+        selectedFiles.map((file) => uploadImage(file))
+      );
+
+      setFormState((current) => ({
+        ...current,
+        images: [
+          ...current.images,
+          ...uploadedImages.map((image) => image.url),
+        ],
+      }));
+    } catch (error) {
+      setFormErrorMessage(getApiErrorMessage(error));
+    } finally {
+      setIsUploading(false);
+      setUploadMessage("");
+    }
+  };
+
+  const removeMainImage = () => {
+    updateFormField("image", "");
+  };
+
+  const removeGalleryImage = (imageUrl: string) => {
+    setFormState((current) => ({
+      ...current,
+      images: current.images.filter((image) => image !== imageUrl),
+    }));
+  };
+
   const handleSubmit = async () => {
+    if (isUploading) {
+      setFormErrorMessage("Please wait for image uploads to finish.");
+      return;
+    }
+
     const validationMessage = validateForm(formState);
 
     if (validationMessage) {
@@ -651,8 +873,14 @@ const Products = () => {
           formState={formState}
           mode={formMode}
           isSaving={isSaving}
+          isUploading={isUploading}
+          uploadMessage={uploadMessage}
           errorMessage={formErrorMessage}
           onChange={updateFormField}
+          onUploadMainImage={handleMainImageUpload}
+          onUploadGalleryImages={handleGalleryImagesUpload}
+          onRemoveMainImage={removeMainImage}
+          onRemoveGalleryImage={removeGalleryImage}
           onClose={closeForm}
           onSubmit={handleSubmit}
         />
