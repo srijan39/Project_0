@@ -10,6 +10,7 @@ import cartRoutes from "./routes/cart.routes";
 import adminRoutes from "./routes/admin.routes";
 import orderRoutes from "./routes/order.routes";
 import uploadRoutes from "./routes/upload.routes";
+import wishlistRoutes from "./routes/wishlist.routes";
 const app = express();
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
@@ -34,6 +35,7 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
 app.use(notFound);
