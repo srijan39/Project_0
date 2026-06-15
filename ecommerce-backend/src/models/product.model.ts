@@ -1,9 +1,13 @@
 import mongoose, { Schema, Document } from "mongoose";
+import { resolveProductPricing } from "../utils/pricing";
 
 export interface IProduct extends Document {
   name: string;
   category: "men" | "women" | "kids";
   price: number;
+  actualPrice: number;
+  sellingPrice: number;
+  discountPercentage: number;
   image: string;
   images: string[];
   description: string;
@@ -31,6 +35,25 @@ const productSchema = new Schema<IProduct>(
     price: {
       type: Number,
       required: true,
+      min: 0,
+    },
+
+    actualPrice: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    sellingPrice: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    discountPercentage: {
+      type: Number,
+      required: true,
+      default: 0,
       min: 0,
     },
 
@@ -68,5 +91,14 @@ const productSchema = new Schema<IProduct>(
     timestamps: true,
   }
 );
+
+productSchema.pre("validate", function calculateProductPricing() {
+  const pricing = resolveProductPricing(this);
+
+  this.actualPrice = pricing.actualPrice;
+  this.sellingPrice = pricing.sellingPrice;
+  this.discountPercentage = pricing.discountPercentage;
+  this.price = pricing.price;
+});
 
 export default mongoose.model<IProduct>("Product", productSchema);

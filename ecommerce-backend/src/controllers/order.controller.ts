@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Order from "../models/order.model";
 import Cart from "../models/cart.model";
 import asyncHandler from "../utils/asyncHandler";
+import { pricingFromProduct } from "../utils/pricing";
 export const createOrder = asyncHandler(async (req: Request, res: Response) => {
   const { shippingAddress } = req.body;
   if (!shippingAddress) {
@@ -22,7 +23,7 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
     color: item.color,
     name: item.product.name,
     image: item.product.image,
-    price: item.product.price,
+    price: pricingFromProduct(item.product).sellingPrice,
   }));
   const subtotal = items.reduce(
     (total, item) => total + item.price * item.quantity,

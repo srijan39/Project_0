@@ -6,7 +6,8 @@ import asyncHandler from "../utils/asyncHandler";
 
 const cartProductPopulate = {
   path: "items.product",
-  select: "_id name category price image images description sizes features",
+  select:
+    "_id name category price actualPrice sellingPrice discountPercentage image images description sizes colors features",
 };
 
 const normalizeVariant = (value?: unknown) =>

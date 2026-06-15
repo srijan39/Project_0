@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import Product from "../models/product.model";
 import asyncHandler from "../utils/asyncHandler";
+import { resolveProductPricing } from "../utils/pricing";
 
 type ProductPayload = Record<string, unknown>;
 
@@ -17,7 +18,8 @@ const normalizeStringArray = (value: unknown) => {
 
 const normalizeProductPayload = (
   payload: ProductPayload,
-  includeDefaults = false
+  includeDefaults = false,
+  fallback?: ProductPayload
 ) => {
   const normalizedPayload = { ...payload };
 
@@ -26,6 +28,20 @@ const normalizeProductPayload = (
       normalizedPayload[field] = normalizeStringArray(payload[field]);
     }
   });
+
+  if (
+    fallback ||
+    payload.actualPrice !== undefined ||
+    payload.sellingPrice !== undefined ||
+    payload.price !== undefined
+  ) {
+    const pricing = resolveProductPricing(payload, fallback);
+
+    normalizedPayload.actualPrice = pricing.actualPrice;
+    normalizedPayload.sellingPrice = pricing.sellingPrice;
+    normalizedPayload.discountPercentage = pricing.discountPercentage;
+    normalizedPayload.price = pricing.price;
+  }
 
   return normalizedPayload;
 };
@@ -40,8 +56,14 @@ const serializeProduct = (product: unknown) => {
       ? (product as { toObject: () => Record<string, unknown> }).toObject()
       : ({ ...(product as Record<string, unknown>) } as Record<string, unknown>);
 
+  const pricing = resolveProductPricing(productObject);
+
   return {
     ...productObject,
+    actualPrice: pricing.actualPrice,
+    sellingPrice: pricing.sellingPrice,
+    discountPercentage: pricing.discountPercentage,
+    price: pricing.price,
     images: Array.isArray(productObject.images) ? productObject.images : [],
     sizes: Array.isArray(productObject.sizes) ? productObject.sizes : [],
     colors: Array.isArray(productObject.colors) ? productObject.colors : [],
@@ -61,7 +83,7 @@ export const getProducts = asyncHandler(
 
     const skip = (page - 1) * limit;
 
-    let filter: any = {};
+    const filter: Record<string, unknown> = {};
 
     if (search) {
       filter.name = { $regex: search, $options: "i" };
@@ -71,36 +93,48 @@ export const getProducts = asyncHandler(
       filter.category = category;
     }
 
-    if (!isNaN(minPrice) || !isNaN(maxPrice)) {
-      filter.price = {};
+    const effectivePriceExpression = { $ifNull: ["$sellingPrice", "$price"] };
+    const priceExpressions = [];
 
-      if (!isNaN(minPrice)) {
-        filter.price.$gte = minPrice;
-      }
-
-      if (!isNaN(maxPrice)) {
-        filter.price.$lte = maxPrice;
-      }
+    if (!isNaN(minPrice)) {
+      priceExpressions.push({ $gte: [effectivePriceExpression, minPrice] });
     }
 
-    let sortOption: any = {};
+    if (!isNaN(maxPrice)) {
+      priceExpressions.push({ $lte: [effectivePriceExpression, maxPrice] });
+    }
+
+    if (priceExpressions.length === 1) {
+      filter.$expr = priceExpressions[0];
+    } else if (priceExpressions.length > 1) {
+      filter.$expr = { $and: priceExpressions };
+    }
+
+    const sortOption: Record<string, 1 | -1> = {};
 
     if (sort === "price_asc") {
-      sortOption.price = 1;
+      sortOption.effectiveSellingPrice = 1;
     } else if (sort === "price_desc") {
-      sortOption.price = -1;
+      sortOption.effectiveSellingPrice = -1;
     } else if (sort === "newest") {
       sortOption.createdAt = -1;
     } else if (sort === "oldest") {
       sortOption.createdAt = 1;
     }
 
-    const products = await Product.find(filter)
-      .sort(sortOption)
-      .skip(skip)
-      .limit(limit);
+    const products = await Product.aggregate([
+      { $match: filter },
+      { $addFields: { effectiveSellingPrice: effectivePriceExpression } },
+      ...(Object.keys(sortOption).length > 0 ? [{ $sort: sortOption }] : []),
+      { $skip: skip },
+      { $limit: limit },
+      { $project: { effectiveSellingPrice: 0 } },
+    ]);
 
-    const total = await Product.countDocuments(filter);
+    const [{ total = 0 } = {}] = await Product.aggregate([
+      { $match: filter },
+      { $count: "total" },
+    ]);
 
     res.status(200).json({
       success: true,
@@ -192,7 +226,7 @@ export const updateProduct = asyncHandler(
 
     const updatedProduct = await Product.findByIdAndUpdate(
       req.params.id,
-      normalizeProductPayload(req.body),
+      normalizeProductPayload(req.body, false, serializeProduct(product)),
       { new: true, runValidators: true }
     );
 

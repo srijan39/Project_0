@@ -1,5 +1,6 @@
 import { body, validationResult } from "express-validator";
 import { Request, Response, NextFunction } from "express";
+import { resolveProductPricing } from "../utils/pricing";
 
 const handleValidationResult = (
   req: Request,
@@ -38,6 +39,38 @@ const validateProductArrayFields = [
   ...validateStringArray("features"),
 ];
 
+const validateCreatePricing = body().custom((value) => {
+  resolveProductPricing(value);
+  return true;
+});
+
+const validateUpdatePricing = body().custom((value) => {
+  const hasPricingUpdate =
+    value &&
+    (value.price !== undefined ||
+      value.actualPrice !== undefined ||
+      value.sellingPrice !== undefined);
+
+  if (
+    hasPricingUpdate &&
+    value.actualPrice !== undefined &&
+    value.sellingPrice !== undefined
+  ) {
+    resolveProductPricing(value);
+  }
+
+  if (
+    hasPricingUpdate &&
+    value.price !== undefined &&
+    value.actualPrice === undefined &&
+    value.sellingPrice === undefined
+  ) {
+    resolveProductPricing(value);
+  }
+
+  return true;
+});
+
 export const validateProduct = [
   body("name")
     .trim()
@@ -49,8 +82,19 @@ export const validateProduct = [
     .withMessage("Invalid category"),
 
   body("price")
+    .optional()
     .isFloat({ min: 0 })
     .withMessage("Price must be a positive number"),
+
+  body("actualPrice")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("Original price must be a positive number"),
+
+  body("sellingPrice")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("Selling price must be a positive number"),
 
   body("image")
     .notEmpty()
@@ -62,6 +106,8 @@ export const validateProduct = [
     .withMessage("Description is required"),
 
   ...validateProductArrayFields,
+
+  validateCreatePricing,
 
   handleValidationResult,
 ];
@@ -83,6 +129,16 @@ export const validateProductUpdate = [
     .isFloat({ min: 0 })
     .withMessage("Price must be a positive number"),
 
+  body("actualPrice")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("Original price must be a positive number"),
+
+  body("sellingPrice")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("Selling price must be a positive number"),
+
   body("image")
     .optional()
     .notEmpty()
@@ -95,6 +151,8 @@ export const validateProductUpdate = [
     .withMessage("Description cannot be empty"),
 
   ...validateProductArrayFields,
+
+  validateUpdatePricing,
 
   handleValidationResult,
 ];
@@ -114,8 +172,19 @@ export const validateProductsBulk = [
     .withMessage("Invalid category"),
 
   body("*.price")
+    .optional()
     .isFloat({ min: 0 })
     .withMessage("Price must be a positive number"),
+
+  body("*.actualPrice")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("Original price must be a positive number"),
+
+  body("*.sellingPrice")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("Selling price must be a positive number"),
 
   body("*.image")
     .notEmpty()
@@ -137,6 +206,14 @@ export const validateProductsBulk = [
       .withMessage(`${field} values must be strings`)
       .trim(),
   ]),
+
+  body().custom((value) => {
+    if (Array.isArray(value)) {
+      value.forEach((product) => resolveProductPricing(product));
+    }
+
+    return true;
+  }),
 
   handleValidationResult,
 ];
