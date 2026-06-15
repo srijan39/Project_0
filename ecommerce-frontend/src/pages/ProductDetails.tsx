@@ -14,6 +14,13 @@ import { useAuth } from "../hooks/useAuth";
 import ProductCard from "../components/ProductCard";
 import OptimizedImage from "../components/OptimizedImage";
 import type { Product } from "../types/product";
+import { normalizeProductPricing } from "../utils/pricing";
+
+const currencyFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -142,6 +149,10 @@ const ProductDetails = () => {
       </section>
     );
   }
+
+  const pricing = normalizeProductPricing(product);
+  const amountSaved = pricing.actualPrice - pricing.sellingPrice;
+  const hasDiscount = pricing.discountPercentage > 0 && amountSaved > 0;
 
   const handleAddToCart = (
     e: React.MouseEvent<HTMLButtonElement>
@@ -353,9 +364,28 @@ const ProductDetails = () => {
               {product.name}
             </h1>
 
-            <p className="mt-4 text-2xl font-semibold text-black">
-              ₹{product.price}
-            </p>
+            <div className="mt-4 space-y-2">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <p className="text-2xl font-semibold text-black">
+                  {currencyFormatter.format(pricing.sellingPrice)}
+                </p>
+                {hasDiscount && (
+                  <p className="text-base font-medium text-gray-400 line-through">
+                    {currencyFormatter.format(pricing.actualPrice)}
+                  </p>
+                )}
+              </div>
+              {hasDiscount && (
+                <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <span className="font-semibold text-green-700">
+                    {pricing.discountPercentage}% OFF
+                  </span>
+                  <span className="text-gray-600">
+                    You Save {currencyFormatter.format(amountSaved)}
+                  </span>
+                </div>
+              )}
+            </div>
 
             <p className="mt-6 leading-7 text-gray-600">
               {product.description}

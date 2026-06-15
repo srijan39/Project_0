@@ -1,5 +1,6 @@
 import { apiRequest } from "./client";
 import type { BackendProduct, Product, ProductCategory } from "../types/product";
+import { normalizeProductPricing } from "../utils/pricing";
 
 interface ProductsResponse {
   success: boolean;
@@ -18,18 +19,22 @@ interface ProductQuery {
   sort?: "price_asc" | "price_desc" | "newest" | "oldest";
 }
 
-export const mapProduct = (product: BackendProduct): Product => ({
-  id: product._id,
-  name: product.name,
-  category: product.category,
-  price: product.price,
-  image: product.image,
-  images: product.images?.length ? product.images : [product.image],
-  description: product.description,
-  sizes: product.sizes || [],
-  colors: product.colors ?? [],
-  features: product.features || [],
-});
+export const mapProduct = (product: BackendProduct): Product => {
+  const pricing = normalizeProductPricing(product);
+
+  return {
+    id: product._id,
+    name: product.name,
+    category: product.category,
+    ...pricing,
+    image: product.image,
+    images: product.images?.length ? product.images : [product.image],
+    description: product.description,
+    sizes: product.sizes || [],
+    colors: product.colors ?? [],
+    features: product.features || [],
+  };
+};
 
 export const getProducts = async (query: ProductQuery = {}) => {
   const params = new URLSearchParams({

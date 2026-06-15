@@ -5,10 +5,17 @@ import { useCart } from "../hooks/useCart";
 import { useAuth } from "../hooks/useAuth";
 import { ShoppingCart } from "lucide-react";
 import OptimizedImage from "./OptimizedImage";
+import { normalizeProductPricing } from "../utils/pricing";
 
 interface Props {
   product: Product;
 }
+
+const currencyFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
 
 const ProductCard = ({ product }: Props) => {
   const { addToCart } = useCart();
@@ -16,6 +23,8 @@ const ProductCard = ({ product }: Props) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [added, setAdded] = useState(false);
+  const pricing = normalizeProductPricing(product);
+  const hasDiscount = pricing.discountPercentage > 0;
 
   const handleAddToCart = (
     e: React.MouseEvent<HTMLButtonElement>
@@ -78,9 +87,23 @@ const ProductCard = ({ product }: Props) => {
           {product.name}
         </h3>
 
-        <p className="mt-1 whitespace-nowrap text-xs font-semibold text-black sm:text-sm">
-          ₹{product.price}
-        </p>
+        <div className="mt-2 min-h-[40px]">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <p className="whitespace-nowrap text-sm font-semibold text-black sm:text-base">
+              {currencyFormatter.format(pricing.sellingPrice)}
+            </p>
+            {hasDiscount && (
+              <p className="whitespace-nowrap text-xs font-medium text-gray-400 line-through">
+                {currencyFormatter.format(pricing.actualPrice)}
+              </p>
+            )}
+          </div>
+          {hasDiscount && (
+            <p className="mt-1 text-xs font-semibold text-green-700">
+              {pricing.discountPercentage}% OFF
+            </p>
+          )}
+        </div>
 
         <div className="mt-auto hidden gap-2 pt-4 sm:flex">
           <button
