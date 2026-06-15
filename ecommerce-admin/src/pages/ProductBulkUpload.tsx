@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { createProductsBulk } from "../api/products";
 import { getApiErrorMessage } from "../api/axios";
 import type { ProductCategory, ProductInput } from "../types/product";
+import { calculateDiscountPercentage } from "../utils/pricing";
 
 type UploadMode = "json" | "csv";
 
@@ -23,7 +24,8 @@ const sampleJson = `[
   {
     "name": "Premium Hoodie",
     "category": "men",
-    "price": 2499,
+    "actualPrice": 2999,
+    "sellingPrice": 2499,
     "image": "https://...",
     "images": ["https://..."],
     "description": "Premium cotton hoodie",
@@ -34,7 +36,7 @@ const sampleJson = `[
 ]`;
 
 const sampleCsv =
-  'name,category,price,image,description,sizes,colors,features\nPremium Hoodie,men,2499,https://...,Premium cotton hoodie,"S|M|L","Black|White","Soft|Comfortable"';
+  'name,category,actualPrice,sellingPrice,image,description,sizes,colors,features\nPremium Hoodie,men,2999,2499,https://...,Premium cotton hoodie,"S|M|L","Black|White","Soft|Comfortable"';
 
 const emptySummary: UploadSummary = {
   total: 0,
@@ -54,6 +56,15 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const asString = (value: unknown) =>
   typeof value === "string" ? value.trim() : "";
+
+const asOptionalNumber = (value: unknown) => {
+  if (value === undefined || value === null || value === "") return undefined;
+
+  const numberValue =
+    typeof value === "number" ? value : Number(asString(value));
+
+  return Number.isFinite(numberValue) ? numberValue : undefined;
+};
 
 const asStringArray = (value: unknown) =>
   Array.isArray(value)
@@ -104,13 +115,22 @@ const parseCsv = (content: string) => {
   }
 
   const headers = parseCsvLine(lines[0]).map((header) => header.toLowerCase());
-  const requiredHeaders = ["name", "category", "price", "image", "description"];
+  const requiredHeaders = ["name", "category", "image", "description"];
   const missingHeader = requiredHeaders.find(
     (header) => !headers.includes(header)
   );
 
   if (missingHeader) {
     throw new Error(`CSV is missing required header: ${missingHeader}`);
+  }
+
+  if (
+    !headers.includes("price") &&
+    (!headers.includes("actualprice") || !headers.includes("sellingprice"))
+  ) {
+    throw new Error(
+      "CSV must include either price or both actualPrice and sellingPrice"
+    );
   }
 
   return lines.slice(1).map((line) => {
@@ -124,6 +144,8 @@ const parseCsv = (content: string) => {
       name: row.name ?? "",
       category: row.category ?? "",
       price: row.price ?? "",
+      actualPrice: row.actualprice ?? "",
+      sellingPrice: row.sellingprice ?? "",
       image: row.image ?? "",
       images: splitPipeList(row.images),
       description: row.description ?? "",
@@ -150,6 +172,8 @@ const parseJson = (content: string) => {
       name: asString(item.name),
       category: asString(item.category),
       price: item.price,
+      actualPrice: item.actualPrice,
+      sellingPrice: item.sellingPrice,
       image: asString(item.image),
       images: asStringArray(item.images),
       description: asString(item.description),
@@ -174,8 +198,11 @@ const validateProducts = (items: unknown[]) => {
 
     const name = asString(item.name);
     const category = asString(item.category) as ProductCategory;
-    const price =
-      typeof item.price === "number" ? item.price : Number(asString(item.price));
+    const legacyPrice = asOptionalNumber(item.price);
+    const actualPrice = asOptionalNumber(item.actualPrice);
+    const sellingPrice = asOptionalNumber(item.sellingPrice);
+    const normalizedActualPrice = actualPrice ?? legacyPrice ?? 0;
+    const normalizedSellingPrice = sellingPrice ?? legacyPrice ?? 0;
     const image = asString(item.image);
     const description = asString(item.description);
     const images = asStringArray(item.images);
@@ -191,8 +218,32 @@ const validateProducts = (items: unknown[]) => {
       failures.push({ row, message: "Category must be men, women, or kids" });
     }
 
-    if (!Number.isFinite(price) || price < 0) {
-      failures.push({ row, message: "Price must be a positive number" });
+    if (!Number.isFinite(normalizedActualPrice) || normalizedActualPrice <= 0) {
+      failures.push({
+        row,
+        message: "Original price must be greater than 0",
+      });
+    }
+
+    if (
+      !Number.isFinite(normalizedSellingPrice) ||
+      normalizedSellingPrice <= 0
+    ) {
+      failures.push({
+        row,
+        message: "Selling price must be greater than 0",
+      });
+    }
+
+    if (
+      Number.isFinite(normalizedActualPrice) &&
+      Number.isFinite(normalizedSellingPrice) &&
+      normalizedSellingPrice > normalizedActualPrice
+    ) {
+      failures.push({
+        row,
+        message: "Selling price cannot exceed original price",
+      });
     }
 
     if (!image) {
@@ -210,7 +261,9 @@ const validateProducts = (items: unknown[]) => {
     products.push({
       name,
       category,
-      price,
+      price: normalizedSellingPrice,
+      actualPrice: normalizedActualPrice,
+      sellingPrice: normalizedSellingPrice,
       image,
       images,
       description,
@@ -491,6 +544,7 @@ const ProductBulkUpload = () => {
                   <th className="px-4 py-3">Product Name</th>
                   <th className="px-4 py-3">Category</th>
                   <th className="px-4 py-3">Price</th>
+                  <th className="px-4 py-3">Discount</th>
                   <th className="px-4 py-3">Sizes</th>
                   <th className="px-4 py-3">Colors</th>
                 </tr>
@@ -505,7 +559,14 @@ const ProductBulkUpload = () => {
                       {product.category}
                     </td>
                     <td className="px-4 py-3 text-slate-600">
-                      {product.price}
+                      {product.sellingPrice}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {calculateDiscountPercentage(
+                        product.actualPrice,
+                        product.sellingPrice
+                      )}
+                      % OFF
                     </td>
                     <td className="px-4 py-3 text-slate-600">
                       {product.sizes.join(", ") || "None"}

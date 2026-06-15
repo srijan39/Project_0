@@ -3,6 +3,9 @@ export interface Product {
   name: string;
   category: ProductCategory;
   price: number;
+  actualPrice: number;
+  sellingPrice: number;
+  discountPercentage: number;
   image: string;
   images: string[];
   description: string;
@@ -17,6 +20,8 @@ export interface ProductInput {
   name: string;
   category: ProductCategory;
   price: number;
+  actualPrice: number;
+  sellingPrice: number;
   image: string;
   images: string[];
   description: string;

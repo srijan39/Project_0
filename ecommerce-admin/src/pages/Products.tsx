@@ -10,6 +10,10 @@ import { uploadImage } from "../api/upload";
 import { getApiErrorMessage } from "../api/axios";
 import type { Product, ProductCategory, ProductInput } from "../types/product";
 import OptimizedImage from "../components/OptimizedImage";
+import {
+  calculateDiscountPercentage,
+  normalizeProductPricing,
+} from "../utils/pricing";
 
 interface ProductListResponse {
   data?: Product[];
@@ -26,7 +30,8 @@ interface ProductResponse {
 interface ProductFormState {
   name: string;
   category: ProductCategory;
-  price: string;
+  actualPrice: string;
+  sellingPrice: string;
   image: string;
   images: string[];
   description: string;
@@ -42,7 +47,8 @@ const PAGE_SIZE = 12;
 const emptyFormState: ProductFormState = {
   name: "",
   category: "men",
-  price: "",
+  actualPrice: "",
+  sellingPrice: "",
   image: "",
   images: [],
   description: "",
@@ -71,7 +77,9 @@ const parseList = (value: string) =>
 const serializeProduct = (formState: ProductFormState): ProductInput => ({
   name: formState.name.trim(),
   category: formState.category,
-  price: Number(formState.price),
+  price: Number(formState.sellingPrice),
+  actualPrice: Number(formState.actualPrice),
+  sellingPrice: Number(formState.sellingPrice),
   image: formState.image.trim(),
   images: formState.images,
   description: formState.description.trim(),
@@ -80,29 +88,61 @@ const serializeProduct = (formState: ProductFormState): ProductInput => ({
   features: parseList(formState.features),
 });
 
-const productToFormState = (product: Product): ProductFormState => ({
-  name: product.name,
-  category: product.category,
-  price: String(product.price),
-  image: product.image,
-  images: product.images ?? [],
-  description: product.description,
-  sizes: product.sizes?.join(", ") ?? "",
-  colors: product.colors?.join(", ") ?? "",
-  features: product.features?.join(", ") ?? "",
-});
+const productToFormState = (product: Product): ProductFormState => {
+  const pricing = normalizeProductPricing(product);
+
+  return {
+    name: product.name,
+    category: product.category,
+    actualPrice: String(pricing.actualPrice),
+    sellingPrice: String(pricing.sellingPrice),
+    image: product.image,
+    images: product.images ?? [],
+    description: product.description,
+    sizes: product.sizes?.join(", ") ?? "",
+    colors: product.colors?.join(", ") ?? "",
+    features: product.features?.join(", ") ?? "",
+  };
+};
 
 const validateForm = (formState: ProductFormState) => {
-  const price = Number(formState.price);
+  const actualPrice = Number(formState.actualPrice);
+  const sellingPrice = Number(formState.sellingPrice);
 
   if (!formState.name.trim()) return "Product name is required";
   if (!formState.image.trim()) return "Main image is required";
   if (!formState.description.trim()) return "Description is required";
-  if (!Number.isFinite(price) || price < 0) {
-    return "Price must be a positive number";
+  if (!Number.isFinite(actualPrice) || actualPrice <= 0) {
+    return "Original price must be greater than 0";
+  }
+  if (!Number.isFinite(sellingPrice) || sellingPrice <= 0) {
+    return "Selling price must be greater than 0";
+  }
+  if (sellingPrice > actualPrice) {
+    return "Selling price cannot exceed original price";
   }
 
   return "";
+};
+
+const getFormPricingPreview = (formState: ProductFormState) => {
+  const actualPrice = Number(formState.actualPrice);
+  const sellingPrice = Number(formState.sellingPrice);
+  const canCalculate =
+    Number.isFinite(actualPrice) &&
+    Number.isFinite(sellingPrice) &&
+    actualPrice > 0 &&
+    sellingPrice > 0 &&
+    sellingPrice <= actualPrice;
+
+  return {
+    actualPrice,
+    sellingPrice,
+    discountPercentage: canCalculate
+      ? calculateDiscountPercentage(actualPrice, sellingPrice)
+      : 0,
+    canCalculate,
+  };
 };
 
 const validateImageFile = (file: File) => {
@@ -116,6 +156,15 @@ const validateImageFile = (file: File) => {
 
   return "";
 };
+
+const normalizeProduct = (product: Product): Product => ({
+  ...product,
+  ...normalizeProductPricing(product),
+  images: product.images ?? [],
+  sizes: product.sizes ?? [],
+  colors: product.colors ?? [],
+  features: product.features ?? [],
+});
 
 const ProductImage = ({ product }: { product: Product }) => (
   <OptimizedImage
@@ -157,6 +206,9 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product, onDelete, onEdit }: ProductCardProps) => {
+  const pricing = normalizeProductPricing(product);
+  const hasDiscount = pricing.discountPercentage > 0;
+
   return (
     <article className="group min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:border-blue-100 hover:shadow-xl hover:shadow-slate-200/70">
       <ProductImage product={product} />
@@ -167,10 +219,23 @@ const ProductCard = ({ product, onDelete, onEdit }: ProductCardProps) => {
             <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
               {formatCategory(product.category)}
             </span>
-            <span className="shrink-0 text-sm font-semibold text-slate-950">
-              {currencyFormatter.format(product.price)}
-            </span>
+            <div className="shrink-0 text-right">
+              <p className="text-sm font-semibold text-slate-950">
+                {currencyFormatter.format(pricing.sellingPrice)}
+              </p>
+              {hasDiscount && (
+                <p className="text-xs font-medium text-slate-400 line-through">
+                  {currencyFormatter.format(pricing.actualPrice)}
+                </p>
+              )}
+            </div>
           </div>
+
+          {hasDiscount && (
+            <p className="text-xs font-semibold text-emerald-600">
+              {pricing.discountPercentage}% OFF
+            </p>
+          )}
 
           <h2 className="line-clamp-2 min-h-12 text-base font-semibold leading-6 text-slate-950">
             {product.name}
@@ -231,8 +296,15 @@ const ProductFormModal = ({
   onRemoveGalleryImage,
   onClose,
   onSubmit,
-}: ProductFormModalProps) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6">
+}: ProductFormModalProps) => {
+  const pricingPreview = getFormPricingPreview(formState);
+  const priceDifference =
+    pricingPreview.canCalculate
+      ? pricingPreview.actualPrice - pricingPreview.sellingPrice
+      : 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6">
     <div className="max-h-full w-full max-w-3xl overflow-y-auto rounded-xl bg-white shadow-2xl">
       <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
         <div>
@@ -292,15 +364,64 @@ const ProductFormModal = ({
           </label>
 
           <label className="space-y-1.5 text-sm font-medium text-slate-700">
-            <span>Price</span>
+            <span>Original Price (MRP)</span>
             <input
               type="number"
-              min="0"
-              value={formState.price}
-              onChange={(event) => onChange("price", event.target.value)}
+              min="1"
+              value={formState.actualPrice}
+              onChange={(event) => onChange("actualPrice", event.target.value)}
               className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
             />
           </label>
+
+          <label className="space-y-1.5 text-sm font-medium text-slate-700">
+            <span>Selling Price</span>
+            <input
+              type="number"
+              min="1"
+              value={formState.sellingPrice}
+              onChange={(event) => onChange("sellingPrice", event.target.value)}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+            />
+          </label>
+        </div>
+
+        <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:grid-cols-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              MRP
+            </p>
+            <p className="mt-1 text-sm font-semibold text-slate-950">
+              {pricingPreview.canCalculate
+                ? currencyFormatter.format(pricingPreview.actualPrice)
+                : "Enter price"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Selling Price
+            </p>
+            <p className="mt-1 text-sm font-semibold text-slate-950">
+              {pricingPreview.canCalculate
+                ? currencyFormatter.format(pricingPreview.sellingPrice)
+                : "Enter price"}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Discount
+            </p>
+            <p className="mt-1 text-sm font-semibold text-emerald-600">
+              {pricingPreview.canCalculate
+                ? `${pricingPreview.discountPercentage}% OFF`
+                : "0% OFF"}
+            </p>
+            {priceDifference > 0 && (
+              <p className="mt-1 text-xs text-slate-500">
+                Save {currencyFormatter.format(priceDifference)}
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="space-y-3 rounded-lg border border-slate-200 p-3">
@@ -494,7 +615,8 @@ const ProductFormModal = ({
       </form>
     </div>
   </div>
-);
+  );
+};
 
 const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -527,13 +649,7 @@ const Products = () => {
 
       setProducts(
         Array.isArray(response.data)
-          ? response.data.map((product) => ({
-              ...product,
-              images: product.images ?? [],
-              sizes: product.sizes ?? [],
-              colors: product.colors ?? [],
-              features: product.features ?? [],
-            }))
+          ? response.data.map(normalizeProduct)
           : []
       );
       setTotalPages(Math.max(1, response.totalPages ?? 1));
@@ -598,13 +714,7 @@ const Products = () => {
       }
 
       setFormState(
-        productToFormState({
-          ...response.data,
-          images: response.data.images ?? [],
-          sizes: response.data.sizes ?? [],
-          colors: response.data.colors ?? [],
-          features: response.data.features ?? [],
-        })
+        productToFormState(normalizeProduct(response.data))
       );
       setIsFormOpen(true);
     } catch (error) {
