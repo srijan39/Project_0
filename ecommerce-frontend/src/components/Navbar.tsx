@@ -6,9 +6,11 @@ import {
   User,
   ShoppingBag,
   Search,
+  Heart,
 } from "lucide-react";
 
 import { useCart } from "../hooks/useCart";
+import { useWishlist } from "../hooks/useWishlist";
 import { useAuth } from "../hooks/useAuth";
 
 interface NavItem {
@@ -32,8 +34,12 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const { cart } = useCart();
+  const { wishlistCount } = useWishlist();
   const { isAuthenticated } = useAuth();
-  const profilePath = isAuthenticated ? "/profile" : "/login";
+
+  const profilePath = isAuthenticated
+    ? "/profile"
+    : "/login";
 
   const cartCount = cart.reduce(
     (total, item) => total + item.quantity,
@@ -162,6 +168,20 @@ const Navbar = () => {
                 )}
               </NavLink>
 
+              {/* Wishlist */}
+              <NavLink
+                to="/wishlist"
+                className="relative text-gray-700 transition hover:text-black"
+              >
+                <Heart className="h-5 w-5" />
+
+                {wishlistCount > 0 && (
+                  <span className="absolute -right-2 -top-2 rounded-full bg-black px-1.5 py-0.5 text-[10px] text-white">
+                    {wishlistCount}
+                  </span>
+                )}
+              </NavLink>
+
               {/* Profile */}
               <NavLink
                 to={profilePath}
@@ -239,7 +259,22 @@ const Navbar = () => {
               >
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  {isAuthenticated ? "Profile" : "Login"}
+                  {isAuthenticated
+                    ? "Profile"
+                    : "Login"}
+                </div>
+              </NavLink>
+
+              <NavLink
+                to="/wishlist"
+                className={getMobileLinkClassName}
+                onClick={closeMobileMenu}
+              >
+                <div className="flex items-center gap-2">
+                  <Heart className="h-4 w-4" />
+                  Wishlist
+                  {wishlistCount > 0 &&
+                    ` (${wishlistCount})`}
                 </div>
               </NavLink>
 
