@@ -7,6 +7,7 @@ import {
   Minus,
   Plus,
   ShoppingCart,
+  Heart,
 } from "lucide-react";
 import { getProductById, getProducts } from "../api/products";
 import { useCart } from "../hooks/useCart";
@@ -15,7 +16,7 @@ import ProductCard from "../components/ProductCard";
 import OptimizedImage from "../components/OptimizedImage";
 import type { Product } from "../types/product";
 import { normalizeProductPricing } from "../utils/pricing";
-
+import { useWishlist } from "../hooks/useWishlist";
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
@@ -25,6 +26,10 @@ const currencyFormatter = new Intl.NumberFormat("en-IN", {
 const ProductDetails = () => {
   const { id } = useParams();
   const { addToCart } = useCart();
+  const {
+  toggleWishlist,
+  isWishlisted,
+} = useWishlist();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -153,7 +158,7 @@ const ProductDetails = () => {
   const pricing = normalizeProductPricing(product);
   const amountSaved = pricing.actualPrice - pricing.sellingPrice;
   const hasDiscount = pricing.discountPercentage > 0 && amountSaved > 0;
-
+const wishlisted = isWishlisted(product.id);
   const handleAddToCart = (
     e: React.MouseEvent<HTMLButtonElement>
   ) => {
@@ -202,6 +207,20 @@ const ProductDetails = () => {
       }, 250);
     }
   };
+  const handleWishlistToggle = async () => {
+  if (!isAuthenticated) {
+    navigate("/login", {
+      state: { from: location },
+    });
+    return;
+  }
+
+  try {
+    await toggleWishlist(product);
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   const handlePrevImage = () => {
     setSelectedImage((prev) =>
@@ -464,18 +483,35 @@ const ProductDetails = () => {
             </div>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <button
-                onClick={handleAddToCart}
-                className="relative overflow-hidden flex flex-1 items-center justify-center gap-2 rounded-md bg-black px-6 py-3 text-sm text-white transition hover:bg-gray-800"
-              >
-                <ShoppingCart size={18} />
-                Add to Cart
-              </button>
+  <button
+    onClick={handleAddToCart}
+    className="relative overflow-hidden flex flex-1 items-center justify-center gap-2 rounded-md bg-black px-6 py-3 text-sm text-white transition hover:bg-gray-800"
+  >
+    <ShoppingCart size={18} />
+    Add to Cart
+  </button>
 
-              <button className="flex-1 rounded-md border border-black px-6 py-3 text-sm text-black transition hover:bg-black hover:text-white">
-                Buy Now
-              </button>
-            </div>
+  <button
+    onClick={handleWishlistToggle}
+    className={`flex items-center justify-center gap-2 rounded-md border px-6 py-3 text-sm transition ${
+      wishlisted
+        ? "border-red-500 bg-red-500 text-white"
+        : "border-black text-black hover:bg-black hover:text-white"
+    }`}
+  >
+    <Heart
+      size={18}
+      className={wishlisted ? "fill-white" : ""}
+    />
+    {wishlisted
+      ? "Wishlisted"
+      : "Add to Wishlist"}
+  </button>
+
+  <button className="flex-1 rounded-md border border-black px-6 py-3 text-sm text-black transition hover:bg-black hover:text-white">
+    Buy Now
+  </button>
+</div>
 
             <div className="mt-10 border-t border-gray-200 pt-8">
               <h2 className="text-lg font-semibold text-gray-900">

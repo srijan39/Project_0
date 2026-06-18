@@ -15,7 +15,7 @@ import {
 import { getOrders, type Order } from "../api/order";
 import OrderStatusBadge from "../components/account/OrderStatusBadge";
 import { useAuth } from "../hooks/useAuth";
-
+import { useWishlist } from "../hooks/useWishlist";
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
@@ -156,6 +156,7 @@ const getAddressKey = (order: Order) => {
 export default function Profile() {
   const navigate = useNavigate();
   const { user, logout, refreshUser, loading } = useAuth();
+  const { wishlist } = useWishlist();
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState<string | null>(null);
@@ -290,7 +291,11 @@ export default function Profile() {
             >
               <StatCard label="Orders" count={orders.length} icon={Package} />
               <StatCard label="Addresses" count={addressCount} icon={MapPin} />
-              <StatCard label="Wishlist" count={0} icon={Heart} />
+              <StatCard
+  label="Wishlist"
+  count={wishlist.length}
+  icon={Heart}
+/>
             </section>
 
             <section className="rounded-lg border border-gray-200 bg-white p-5 sm:p-6">
@@ -313,6 +318,7 @@ export default function Profile() {
               </div>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                
                 <Link
                   to="/orders"
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-black px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
@@ -340,7 +346,7 @@ export default function Profile() {
               <NavigationCard label="Profile" icon={User} to="/profile" />
               <NavigationCard label="Orders" icon={Package} to="/orders" />
               <NavigationCard label="Addresses" icon={MapPin} disabled />
-              <NavigationCard label="Wishlist" icon={Heart} disabled />
+              <NavigationCard label="Wishlist" icon={Heart}  to="/wishlist" />
               <NavigationCard label="Security" icon={Lock} disabled />
               <NavigationCard label="Logout" icon={LogOut} onClick={handleLogout} />
             </section>
