@@ -2,8 +2,12 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { Product } from "../types/product";
 import { useCart } from "../hooks/useCart";
+import { useWishlist } from "../hooks/useWishlist";
 import { useAuth } from "../hooks/useAuth";
-import { ShoppingCart } from "lucide-react";
+import {
+  ShoppingCart,
+  Heart,
+} from "lucide-react";
 import OptimizedImage from "./OptimizedImage";
 import { normalizeProductPricing } from "../utils/pricing";
 
@@ -19,12 +23,25 @@ const currencyFormatter = new Intl.NumberFormat("en-IN", {
 
 const ProductCard = ({ product }: Props) => {
   const { addToCart } = useCart();
+
+  const {
+    toggleWishlist,
+    isWishlisted,
+  } = useWishlist();
+
   const { isAuthenticated } = useAuth();
+
   const navigate = useNavigate();
   const location = useLocation();
+
   const [added, setAdded] = useState(false);
+
   const pricing = normalizeProductPricing(product);
-  const hasDiscount = pricing.discountPercentage > 0;
+
+  const hasDiscount =
+    pricing.discountPercentage > 0;
+
+  const wishlisted = isWishlisted(product.id);
 
   const handleAddToCart = (
     e: React.MouseEvent<HTMLButtonElement>
@@ -33,31 +50,48 @@ const ProductCard = ({ product }: Props) => {
     e.stopPropagation();
 
     if (!isAuthenticated) {
-      navigate("/login", { state: { from: location } });
+      navigate("/login", {
+        state: { from: location },
+      });
       return;
     }
 
     const button = e.currentTarget;
 
     const circle = document.createElement("span");
-    const diameter = Math.max(button.clientWidth, button.clientHeight);
+    const diameter = Math.max(
+      button.clientWidth,
+      button.clientHeight
+    );
+
     const radius = diameter / 2;
 
-    circle.style.width = circle.style.height = `${diameter}px`;
+    circle.style.width =
+      circle.style.height = `${diameter}px`;
+
     circle.style.left = `${
-      e.clientX - button.getBoundingClientRect().left - radius
+      e.clientX -
+      button.getBoundingClientRect().left -
+      radius
     }px`;
+
     circle.style.top = `${
-      e.clientY - button.getBoundingClientRect().top - radius
+      e.clientY -
+      button.getBoundingClientRect().top -
+      radius
     }px`;
+
     circle.classList.add("ripple");
 
-    const ripple = button.getElementsByClassName("ripple")[0];
+    const ripple =
+      button.getElementsByClassName("ripple")[0];
+
     if (ripple) ripple.remove();
 
     button.appendChild(circle);
 
     addToCart(product);
+
     setAdded(true);
 
     setTimeout(() => {
@@ -65,12 +99,47 @@ const ProductCard = ({ product }: Props) => {
     }, 1200);
   };
 
+  const handleWishlistToggle = async (
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isAuthenticated) {
+      navigate("/login", {
+        state: { from: location },
+      });
+      return;
+    }
+
+    try {
+      await toggleWishlist(product);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   return (
     <Link
       to={`/product/${product.id}`}
       className="group flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 transition duration-300 hover:shadow-lg"
     >
-      <div className="aspect-[5/5] overflow-hidden bg-gray-100">
+      <div className="relative aspect-[5/5] overflow-hidden bg-gray-100">
+        <button
+          onClick={handleWishlistToggle}
+          className="absolute right-3 top-3 z-10 rounded-full bg-white p-2 shadow-md transition hover:scale-110"
+          aria-label="Toggle wishlist"
+        >
+          <Heart
+            size={18}
+            className={
+              wishlisted
+                ? "fill-red-500 text-red-500"
+                : "text-gray-600"
+            }
+          />
+        </button>
+
         <OptimizedImage
           src={product.image}
           alt={product.name}
@@ -90,14 +159,20 @@ const ProductCard = ({ product }: Props) => {
         <div className="mt-2 min-h-[40px]">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <p className="whitespace-nowrap text-sm font-semibold text-black sm:text-base">
-              {currencyFormatter.format(pricing.sellingPrice)}
+              {currencyFormatter.format(
+                pricing.sellingPrice
+              )}
             </p>
+
             {hasDiscount && (
               <p className="whitespace-nowrap text-xs font-medium text-gray-400 line-through">
-                {currencyFormatter.format(pricing.actualPrice)}
+                {currencyFormatter.format(
+                  pricing.actualPrice
+                )}
               </p>
             )}
           </div>
+
           {hasDiscount && (
             <p className="mt-1 text-xs font-semibold text-green-700">
               {pricing.discountPercentage}% OFF
@@ -115,7 +190,10 @@ const ProductCard = ({ product }: Props) => {
             }`}
           >
             {added ? (
-              <ShoppingCart size={16} className="mx-auto" />
+              <ShoppingCart
+                size={16}
+                className="mx-auto"
+              />
             ) : (
               "Add to Cart"
             )}
