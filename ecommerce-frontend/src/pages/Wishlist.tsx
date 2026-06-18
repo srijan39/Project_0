@@ -103,7 +103,7 @@ const Wishlist = () => {
 
               <div className="mt-2 flex items-center gap-2">
                 <span className="font-semibold">
-                  ₹{product.price}
+                  ₹{product.sellingPrice}
                 </span>
 
                 {product.discountPercentage > 0 && (
