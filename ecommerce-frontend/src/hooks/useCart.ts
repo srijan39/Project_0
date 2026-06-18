@@ -1,13 +1,13 @@
 import { useContext } from "react";
-import { WishlistContext } from "../context/wishlist-context";
-import type { WishlistContextType } from "../context/wishlist-context";
+import { CartContext } from "../context/cart-context";
+import type { CartContextType } from "../context/cart-context";
 
-export const useWishlist = (): WishlistContextType => {
-  const context = useContext(WishlistContext);
+export const useCart = (): CartContextType => {
+  const context = useContext(CartContext);
 
   if (!context) {
     throw new Error(
-      "useWishlist must be used within WishlistProvider"
+      "useCart must be used within CartProvider"
     );
   }
 
