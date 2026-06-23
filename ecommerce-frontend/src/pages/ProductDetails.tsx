@@ -54,6 +54,17 @@ const ProductDetails = () => {
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
 
+  const activeVariant = useMemo(() => {
+    if (!product || !product.variants || product.variants.length === 0) return null;
+    return product.variants.find(
+      (v) => v.size === selectedSize && v.color === selectedColor
+    ) ?? null;
+  }, [product, selectedSize, selectedColor]);
+
+  const availableStock = activeVariant?.stock ?? null;
+  const isOutOfStock = availableStock !== null && availableStock === 0;
+  const isLowStock = availableStock !== null && availableStock > 0 && availableStock <= 10;
+
   useEffect(() => {
     let isActive = true;
 
@@ -93,6 +104,10 @@ const ProductDetails = () => {
       isActive = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    setQuantity(1);
+  }, [selectedSize, selectedColor]);
 
   useEffect(() => {
     let isActive = true;
@@ -456,6 +471,16 @@ const wishlisted = isWishlisted(product.id);
               </div>
             )}
 
+            {isOutOfStock && (
+              <p className="mt-5 text-sm font-medium text-red-600">Out of Stock</p>
+            )}
+
+            {isLowStock && (
+              <p className="mt-5 text-sm font-medium text-amber-600">
+                Only {availableStock} left in stock
+              </p>
+            )}
+
             <div className="mt-8">
               <p className="mb-3 text-sm font-medium text-gray-900">
                 Quantity
@@ -464,7 +489,8 @@ const wishlisted = isWishlisted(product.id);
               <div className="flex w-fit items-center overflow-hidden rounded-md border border-gray-300">
                 <button
                   onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                  className="px-4 py-2 transition hover:bg-gray-100"
+                  disabled={isOutOfStock}
+                  className="px-4 py-2 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Minus size={16} />
                 </button>
@@ -474,8 +500,15 @@ const wishlisted = isWishlisted(product.id);
                 </span>
 
                 <button
-                  onClick={() => setQuantity((prev) => prev + 1)}
-                  className="px-4 py-2 transition hover:bg-gray-100"
+                  onClick={() =>
+                    setQuantity((prev) =>
+                      availableStock !== null
+                        ? Math.min(availableStock, prev + 1)
+                        : prev + 1
+                    )
+                  }
+                  disabled={isOutOfStock || (availableStock !== null && quantity >= availableStock)}
+                  className="px-4 py-2 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Plus size={16} />
                 </button>
@@ -485,10 +518,11 @@ const wishlisted = isWishlisted(product.id);
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
   <button
     onClick={handleAddToCart}
-    className="relative overflow-hidden flex flex-1 items-center justify-center gap-2 rounded-md bg-black px-6 py-3 text-sm text-white transition hover:bg-gray-800"
+    disabled={isOutOfStock}
+    className="relative overflow-hidden flex flex-1 items-center justify-center gap-2 rounded-md bg-black px-6 py-3 text-sm text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
   >
     <ShoppingCart size={18} />
-    Add to Cart
+    {isOutOfStock ? "Out of Stock" : "Add to Cart"}
   </button>
 
   <button

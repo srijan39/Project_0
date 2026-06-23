@@ -33,6 +33,7 @@ export const mapProduct = (product: BackendProduct): Product => {
     sizes: product.sizes || [],
     colors: product.colors ?? [],
     features: product.features || [],
+    variants: product.variants ?? [],
   };
 };
 

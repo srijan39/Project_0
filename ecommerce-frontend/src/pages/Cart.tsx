@@ -3,7 +3,18 @@ import { useCart } from "../hooks/useCart";
 import OptimizedImage from "../components/OptimizedImage";
 
 const Cart = () => {
-  const { cart, increaseQty, decreaseQty, removeFromCart } = useCart();
+  const { cart, stockWarnings, increaseQty, decreaseQty, removeFromCart } = useCart();
+
+  const itemKey = (id: string, size?: string, color?: string) =>
+    `${id}|${size ?? ""}|${color ?? ""}`;
+
+  const itemStock = (item: (typeof cart)[number]): number | null => {
+    if (!item.variants || item.variants.length === 0) return null;
+    const v = item.variants.find(
+      (v) => v.size === (item.size ?? "") && v.color === (item.color ?? "")
+    );
+    return v?.stock ?? null;
+  };
 
   const subtotal = cart.reduce(
     (acc, item) => acc + item.price * item.quantity,
@@ -97,35 +108,47 @@ const Cart = () => {
                   </div>
                 </div>
 
-                <div className="mt-4 flex items-center gap-3">
-                  <button
-                    onClick={() =>
-                      decreaseQty(item.id, item.size, item.color)
-                    }
-                    className="h-8 w-8 rounded border transition hover:bg-gray-50"
-                  >
-                    -
-                  </button>
+                <div className="mt-4 flex flex-col gap-2">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() =>
+                        decreaseQty(item.id, item.size, item.color)
+                      }
+                      className="h-8 w-8 rounded border transition hover:bg-gray-50"
+                    >
+                      -
+                    </button>
 
-                  <span>{item.quantity}</span>
+                    <span>{item.quantity}</span>
 
-                  <button
-                    onClick={() =>
-                      increaseQty(item.id, item.size, item.color)
-                    }
-                    className="h-8 w-8 rounded border transition hover:bg-gray-50"
-                  >
-                    +
-                  </button>
+                    <button
+                      onClick={() =>
+                        increaseQty(item.id, item.size, item.color)
+                      }
+                      disabled={(() => {
+                        const stock = itemStock(item);
+                        return stock !== null && item.quantity >= stock;
+                      })()}
+                      className="h-8 w-8 rounded border transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      +
+                    </button>
 
-                  <button
-                    onClick={() =>
-                      removeFromCart(item.id, item.size, item.color)
-                    }
-                    className="ml-4 text-sm text-red-500 transition hover:text-red-600"
-                  >
-                    Remove
-                  </button>
+                    <button
+                      onClick={() =>
+                        removeFromCart(item.id, item.size, item.color)
+                      }
+                      className="ml-4 text-sm text-red-500 transition hover:text-red-600"
+                    >
+                      Remove
+                    </button>
+                  </div>
+
+                  {stockWarnings[itemKey(item.id, item.size, item.color)] && (
+                    <p className="text-xs text-amber-600">
+                      {stockWarnings[itemKey(item.id, item.size, item.color)]}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

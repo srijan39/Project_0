@@ -15,6 +15,7 @@ export interface AddToCartOptions {
 
 export interface CartContextType {
   cart: CartItem[];
+  stockWarnings: Record<string, string>;
   addToCart: (product: Product, options?: AddToCartOptions) => void;
   removeFromCart: (id: string, size?: string, color?: string) => void;
   increaseQty: (id: string, size?: string, color?: string) => void;

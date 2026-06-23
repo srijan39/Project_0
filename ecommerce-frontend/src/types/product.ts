@@ -1,5 +1,11 @@
 export type ProductCategory = "men" | "women" | "kids";
 
+export interface ProductVariant {
+  size: string;
+  color: string;
+  stock: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -14,6 +20,7 @@ export interface Product {
   sizes: string[];
   colors: string[];
   features: string[];
+  variants: ProductVariant[];
 }
 
 export interface BackendProduct {
@@ -30,4 +37,5 @@ export interface BackendProduct {
   sizes?: string[];
   colors?: string[];
   features?: string[];
+  variants?: ProductVariant[];
 }
