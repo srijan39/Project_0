@@ -27,6 +27,12 @@ interface ProductResponse {
   data?: Product;
 }
 
+interface ProductVariantFormItem {
+  size: string;
+  color: string;
+  stock: string;
+}
+
 interface ProductFormState {
   name: string;
   category: ProductCategory;
@@ -35,9 +41,8 @@ interface ProductFormState {
   image: string;
   images: string[];
   description: string;
-  sizes: string;
-  colors: string;
   features: string;
+  variants: ProductVariantFormItem[];
 }
 
 type FormMode = "create" | "edit";
@@ -52,9 +57,8 @@ const emptyFormState: ProductFormState = {
   image: "",
   images: [],
   description: "",
-  sizes: "",
-  colors: "",
   features: "",
+  variants: [],
 };
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
@@ -83,9 +87,14 @@ const serializeProduct = (formState: ProductFormState): ProductInput => ({
   image: formState.image.trim(),
   images: formState.images,
   description: formState.description.trim(),
-  sizes: parseList(formState.sizes),
-  colors: parseList(formState.colors),
+  sizes: [...new Set(formState.variants.map((v) => v.size.trim()).filter(Boolean))],
+  colors: [...new Set(formState.variants.map((v) => v.color.trim()).filter(Boolean))],
   features: parseList(formState.features),
+  variants: formState.variants.map((v) => ({
+    size: v.size.trim(),
+    color: v.color.trim(),
+    stock: Math.max(0, Math.round(Number(v.stock) || 0)),
+  })),
 });
 
 const productToFormState = (product: Product): ProductFormState => {
@@ -99,9 +108,12 @@ const productToFormState = (product: Product): ProductFormState => {
     image: product.image,
     images: product.images ?? [],
     description: product.description,
-    sizes: product.sizes?.join(", ") ?? "",
-    colors: product.colors?.join(", ") ?? "",
     features: product.features?.join(", ") ?? "",
+    variants: (product.variants ?? []).map((v) => ({
+      size: v.size,
+      color: v.color,
+      stock: String(v.stock),
+    })),
   };
 };
 
@@ -120,6 +132,13 @@ const validateForm = (formState: ProductFormState) => {
   }
   if (sellingPrice > actualPrice) {
     return "Selling price cannot exceed original price";
+  }
+
+  for (const variant of formState.variants) {
+    const stock = Number(variant.stock);
+    if (!Number.isFinite(stock) || stock < 0) {
+      return "All variant stock values must be 0 or greater";
+    }
   }
 
   return "";
@@ -164,6 +183,7 @@ const normalizeProduct = (product: Product): Product => ({
   sizes: product.sizes ?? [],
   colors: product.colors ?? [],
   features: product.features ?? [],
+  variants: product.variants ?? [],
 });
 
 const ProductImage = ({ product }: { product: Product }) => (
@@ -274,6 +294,7 @@ interface ProductFormModalProps {
   uploadMessage: string;
   errorMessage: string;
   onChange: (field: keyof ProductFormState, value: string) => void;
+  onVariantsChange: (variants: ProductVariantFormItem[]) => void;
   onUploadMainImage: (file: File | undefined) => void;
   onUploadGalleryImages: (files: FileList | null) => void;
   onRemoveMainImage: () => void;
@@ -290,6 +311,7 @@ const ProductFormModal = ({
   uploadMessage,
   errorMessage,
   onChange,
+  onVariantsChange,
   onUploadMainImage,
   onUploadGalleryImages,
   onRemoveMainImage,
@@ -303,6 +325,24 @@ const ProductFormModal = ({
       ? pricingPreview.actualPrice - pricingPreview.sellingPrice
       : 0;
 
+  const addVariant = () => {
+    onVariantsChange([...formState.variants, { size: "", color: "", stock: "0" }]);
+  };
+
+  const removeVariant = (index: number) => {
+    onVariantsChange(formState.variants.filter((_, i) => i !== index));
+  };
+
+  const updateVariantField = (
+    index: number,
+    field: keyof ProductVariantFormItem,
+    value: string
+  ) => {
+    onVariantsChange(
+      formState.variants.map((v, i) => (i === index ? { ...v, [field]: value } : v))
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6">
     <div className="max-h-full w-full max-w-3xl overflow-y-auto rounded-xl bg-white shadow-2xl">
@@ -312,7 +352,7 @@ const ProductFormModal = ({
             {mode === "create" ? "Add Product" : "Edit Product"}
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Use uploads for images and commas for sizes, colors, and features.
+            Use uploads for images and commas for features.
           </p>
         </div>
         <button
@@ -557,36 +597,94 @@ const ProductFormModal = ({
           />
         </label>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <label className="space-y-1.5 text-sm font-medium text-slate-700">
-            <span>Sizes</span>
-            <input
-              value={formState.sizes}
-              onChange={(event) => onChange("sizes", event.target.value)}
-              placeholder="S, M, L, XL"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-            />
-          </label>
+        <label className="block space-y-1.5 text-sm font-medium text-slate-700">
+          <span>Features</span>
+          <input
+            value={formState.features}
+            onChange={(event) => onChange("features", event.target.value)}
+            placeholder="Soft, Comfortable, Machine Washable"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+          />
+        </label>
 
-          <label className="space-y-1.5 text-sm font-medium text-slate-700">
-            <span>Colors</span>
-            <input
-              value={formState.colors}
-              onChange={(event) => onChange("colors", event.target.value)}
-              placeholder="Black, White, Navy Blue"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-            />
-          </label>
+        <div className="space-y-3 rounded-lg border border-slate-200 p-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-700">Variants</p>
+              <p className="mt-0.5 text-xs text-slate-400">
+                Define size, color, and stock for each variant.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={addVariant}
+              className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Add Variant
+            </button>
+          </div>
 
-          <label className="space-y-1.5 text-sm font-medium text-slate-700">
-            <span>Features</span>
-            <input
-              value={formState.features}
-              onChange={(event) => onChange("features", event.target.value)}
-              placeholder="Soft, Comfortable"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-            />
-          </label>
+          {formState.variants.length > 0 ? (
+            <div className="space-y-2">
+              <div className="grid grid-cols-[1fr_1fr_80px_auto] gap-2 px-1">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Size
+                </p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Color
+                </p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Stock
+                </p>
+                <span />
+              </div>
+
+              {formState.variants.map((variant, index) => (
+                <div
+                  key={index}
+                  className="grid grid-cols-[1fr_1fr_80px_auto] items-center gap-2"
+                >
+                  <input
+                    value={variant.size}
+                    onChange={(event) =>
+                      updateVariantField(index, "size", event.target.value)
+                    }
+                    placeholder="e.g. M"
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                  />
+                  <input
+                    value={variant.color}
+                    onChange={(event) =>
+                      updateVariantField(index, "color", event.target.value)
+                    }
+                    placeholder="e.g. Black"
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    value={variant.stock}
+                    onChange={(event) =>
+                      updateVariantField(index, "stock", event.target.value)
+                    }
+                    placeholder="0"
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeVariant(index)}
+                    className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-400"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">
+              No variants added
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end">
@@ -736,6 +834,13 @@ const Products = () => {
     setFormState((current) => ({
       ...current,
       [field]: value,
+    }));
+  };
+
+  const handleVariantsChange = (variants: ProductVariantFormItem[]) => {
+    setFormState((current) => ({
+      ...current,
+      variants,
     }));
   };
 
@@ -987,6 +1092,7 @@ const Products = () => {
           uploadMessage={uploadMessage}
           errorMessage={formErrorMessage}
           onChange={updateFormField}
+          onVariantsChange={handleVariantsChange}
           onUploadMainImage={handleMainImageUpload}
           onUploadGalleryImages={handleGalleryImagesUpload}
           onRemoveMainImage={removeMainImage}

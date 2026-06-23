@@ -1,3 +1,9 @@
+export interface ProductVariant {
+  size: string;
+  color: string;
+  stock: number;
+}
+
 export interface Product {
   _id: string;
   name: string;
@@ -12,6 +18,7 @@ export interface Product {
   sizes: string[];
   colors: string[];
   features: string[];
+  variants: ProductVariant[];
 }
 
 export type ProductCategory = "men" | "women" | "kids";
@@ -28,4 +35,5 @@ export interface ProductInput {
   sizes: string[];
   colors: string[];
   features: string[];
+  variants: ProductVariant[];
 }
