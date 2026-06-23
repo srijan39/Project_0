@@ -2,12 +2,13 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Cart from "../models/cart.model";
 import Product from "../models/product.model";
+import type { IProductVariant } from "../models/product.model";
 import asyncHandler from "../utils/asyncHandler";
 
 const cartProductPopulate = {
   path: "items.product",
   select:
-    "_id name category price actualPrice sellingPrice discountPercentage image images description sizes colors features",
+    "_id name category price actualPrice sellingPrice discountPercentage image images description sizes colors features variants",
 };
 
 const normalizeVariant = (value?: unknown) =>
@@ -25,6 +26,59 @@ const isSameCartItem = (
   item.product.toString() === productId &&
   (item.size || undefined) === size &&
   (item.color || undefined) === color;
+
+
+const findVariant = (
+  variants: IProductVariant[],
+  size: string | undefined,
+  color: string | undefined
+): IProductVariant | undefined =>
+  variants.find(
+    (v) =>
+      v.size === (size ?? "") &&
+      v.color === (color ?? "")
+  );
+
+const checkVariantStock = (
+  product: { name: string; variants: IProductVariant[] },
+  size: string | undefined,
+  color: string | undefined,
+  requestedTotal: number
+): { status: number; message: string } | null => {
+  if (!product.variants || product.variants.length === 0) {
+    // No variant inventory configured — allow purchase (backward compatible)
+    return null;
+  }
+
+  const variant = findVariant(product.variants, size, color);
+
+  if (!variant) {
+    const sizeLabel = size ? ` size "${size}"` : "";
+    const colorLabel = color ? ` color "${color}"` : "";
+    return {
+      status: 400,
+      message: `The selected variant${sizeLabel}${colorLabel} is not available for "${product.name}"`,
+    };
+  }
+
+  if (variant.stock === 0) {
+    const sizeLabel = size ? ` (${size}` : "";
+    const colorLabel = color ? `/${color})` : size ? ")" : "";
+    return {
+      status: 400,
+      message: `"${product.name}"${sizeLabel}${colorLabel} is out of stock`,
+    };
+  }
+
+  if (requestedTotal > variant.stock) {
+    return {
+      status: 400,
+      message: `Only ${variant.stock} unit${variant.stock === 1 ? "" : "s"} of "${product.name}" available for the selected variant`,
+    };
+  }
+
+  return null;
+};
 
 export const addToCart = asyncHandler(
   async (req: Request, res: Response) => {
@@ -78,6 +132,19 @@ export const addToCart = asyncHandler(
       (item) => isSameCartItem(item, productId, size, color)
     );
 
+
+    const currentCartQty = existingItem?.quantity ?? 0;
+    const totalRequested = currentCartQty + itemQuantity;
+
+    const stockError = checkVariantStock(product, size, color, totalRequested);
+
+    if (stockError) {
+      return res.status(stockError.status).json({
+        success: false,
+        message: stockError.message,
+      });
+    }
+
     if (existingItem) {
       existingItem.quantity += itemQuantity;
     } else {
@@ -98,6 +165,7 @@ export const addToCart = asyncHandler(
     });
   }
 );
+
 export const getCart = asyncHandler(
   async (req: Request, res: Response) => {
     const cart = await Cart.findOne({
@@ -110,6 +178,7 @@ export const getCart = asyncHandler(
     });
   }
 );
+
 export const removeFromCart = asyncHandler(
   async (req: Request, res: Response) => {
     const productId = normalizeParam(req.params.productId);
@@ -189,6 +258,22 @@ export const updateCartItem = asyncHandler(
         success: false,
         message: "Cart item not found",
       });
+    }
+
+    // Stock validation — only when increasing quantity (quantity > 0)
+    if (quantity > 0) {
+      const product = await Product.findById(productId).select("name variants");
+
+      if (product) {
+        const stockError = checkVariantStock(product, size, color, quantity);
+
+        if (stockError) {
+          return res.status(stockError.status).json({
+            success: false,
+            message: stockError.message,
+          });
+        }
+      }
     }
 
     if (quantity === 0) {

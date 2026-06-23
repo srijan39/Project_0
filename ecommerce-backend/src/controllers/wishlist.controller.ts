@@ -46,7 +46,7 @@ export const addToWishlist = async (req: Request, res: Response) => {
       });
     }
 
-    const { productId } = req.params;
+    const productId = String(req.params.productId);
 
     if (!mongoose.Types.ObjectId.isValid(productId)) {
       return res.status(400).json({
@@ -114,7 +114,7 @@ export const removeFromWishlist = async (
       });
     }
 
-    const { productId } = req.params;
+    const productId = String(req.params.productId);
 
     if (!mongoose.Types.ObjectId.isValid(productId)) {
       return res.status(400).json({
@@ -164,7 +164,7 @@ export const checkWishlistStatus = async (
       });
     }
 
-    const { productId } = req.params;
+    const productId = String(req.params.productId);
 
     if (!mongoose.Types.ObjectId.isValid(productId)) {
       return res.status(400).json({

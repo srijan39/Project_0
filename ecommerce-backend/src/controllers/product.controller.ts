@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Product from "../models/product.model";
+import type { IProductVariant } from "../models/product.model";
 import asyncHandler from "../utils/asyncHandler";
 import { resolveProductPricing } from "../utils/pricing";
 
@@ -16,6 +17,21 @@ const normalizeStringArray = (value: unknown) => {
     .filter(Boolean);
 };
 
+
+const normalizeVariants = (value: unknown): IProductVariant[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((item): item is Record<string, unknown> =>
+      item !== null && typeof item === "object"
+    )
+    .map((item) => ({
+      size: String(item.size ?? "").trim(),
+      color: String(item.color ?? "").trim(),
+      stock: Math.max(0, Math.round(Number(item.stock) || 0)),
+    }));
+};
+
 const normalizeProductPayload = (
   payload: ProductPayload,
   includeDefaults = false,
@@ -28,6 +44,11 @@ const normalizeProductPayload = (
       normalizedPayload[field] = normalizeStringArray(payload[field]);
     }
   });
+
+
+  if (Array.isArray(payload.variants) || includeDefaults) {
+    normalizedPayload.variants = normalizeVariants(payload.variants);
+  }
 
   if (
     fallback ||
@@ -49,9 +70,9 @@ const normalizeProductPayload = (
 const serializeProduct = (product: unknown) => {
   const productObject =
     product &&
-    typeof product === "object" &&
-    "toObject" in product &&
-    typeof (product as { toObject: () => Record<string, unknown> }).toObject ===
+      typeof product === "object" &&
+      "toObject" in product &&
+      typeof (product as { toObject: () => Record<string, unknown> }).toObject ===
       "function"
       ? (product as { toObject: () => Record<string, unknown> }).toObject()
       : ({ ...(product as Record<string, unknown>) } as Record<string, unknown>);
@@ -68,6 +89,7 @@ const serializeProduct = (product: unknown) => {
     sizes: Array.isArray(productObject.sizes) ? productObject.sizes : [],
     colors: Array.isArray(productObject.colors) ? productObject.colors : [],
     features: Array.isArray(productObject.features) ? productObject.features : [],
+    variants: Array.isArray(productObject.variants) ? productObject.variants : [],
   };
 };
 
@@ -153,6 +175,7 @@ export const getProducts = asyncHandler(
     });
   }
 );
+
 export const createProduct = asyncHandler(
   async (req: Request, res: Response) => {
     const product = await Product.create(
@@ -165,6 +188,7 @@ export const createProduct = asyncHandler(
     });
   }
 );
+
 export const createProductsBulk = asyncHandler(
   async (req: Request, res: Response) => {
     if (!Array.isArray(req.body)) {
@@ -194,6 +218,7 @@ export const createProductsBulk = asyncHandler(
     });
   }
 );
+
 export const getProductById = asyncHandler(
   async (req: Request, res: Response) => {
     const product = await Product.findById(req.params.id);
@@ -212,6 +237,7 @@ export const getProductById = asyncHandler(
     });
   }
 );
+
 export const updateProduct = asyncHandler(
   async (req: Request, res: Response) => {
     const product = await Product.findById(req.params.id);
@@ -236,6 +262,7 @@ export const updateProduct = asyncHandler(
     });
   }
 );
+
 export const deleteProduct = asyncHandler(
   async (req: Request, res: Response) => {
     const product = await Product.findById(req.params.id);

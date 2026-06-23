@@ -39,6 +39,81 @@ const validateProductArrayFields = [
   ...validateStringArray("features"),
 ];
 
+
+const validateVariantsField = [
+  body("variants")
+    .optional()
+    .isArray()
+    .withMessage("variants must be an array"),
+
+  body("variants.*.size")
+    .optional()
+    .isString()
+    .withMessage("variant size must be a string")
+    .trim(),
+
+  body("variants.*.color")
+    .optional()
+    .isString()
+    .withMessage("variant color must be a string")
+    .trim(),
+
+  body("variants.*.stock")
+    .exists({ checkNull: true })
+    .withMessage("variant stock is required")
+    .isInt({ min: 0 })
+    .withMessage("variant stock must be a non-negative integer"),
+
+  // Cross-field: no two variants in the same request may share the same size+color
+  body("variants").custom((variants: unknown) => {
+    if (!Array.isArray(variants) || variants.length === 0) return true;
+
+    const seen = new Set<string>();
+
+    for (const v of variants) {
+      if (typeof v !== "object" || v === null) continue;
+
+      const item = v as Record<string, unknown>;
+      const key = `${String(item.size ?? "")}|${String(item.color ?? "")}`;
+
+      if (seen.has(key)) {
+        throw new Error(
+          `Duplicate variant: size "${item.size ?? ""}" + color "${item.color ?? ""}" appears more than once`
+        );
+      }
+
+      seen.add(key);
+    }
+
+    return true;
+  }),
+];
+
+const validateBulkVariantsField = [
+  body("*.variants")
+    .optional()
+    .isArray()
+    .withMessage("variants must be an array"),
+
+  body("*.variants.*.size")
+    .optional()
+    .isString()
+    .withMessage("variant size must be a string")
+    .trim(),
+
+  body("*.variants.*.color")
+    .optional()
+    .isString()
+    .withMessage("variant color must be a string")
+    .trim(),
+
+  body("*.variants.*.stock")
+    .if(body("*.variants").exists())
+    .isInt({ min: 0 })
+    .withMessage("variant stock must be a non-negative integer"),
+];
+
+
 const validateCreatePricing = body().custom((value) => {
   resolveProductPricing(value);
   return true;
@@ -70,6 +145,7 @@ const validateUpdatePricing = body().custom((value) => {
 
   return true;
 });
+
 
 export const validateProduct = [
   body("name")
@@ -106,6 +182,7 @@ export const validateProduct = [
     .withMessage("Description is required"),
 
   ...validateProductArrayFields,
+  ...validateVariantsField,
 
   validateCreatePricing,
 
@@ -151,6 +228,7 @@ export const validateProductUpdate = [
     .withMessage("Description cannot be empty"),
 
   ...validateProductArrayFields,
+  ...validateVariantsField,
 
   validateUpdatePricing,
 
@@ -206,6 +284,8 @@ export const validateProductsBulk = [
       .withMessage(`${field} values must be strings`)
       .trim(),
   ]),
+
+  ...validateBulkVariantsField,
 
   body().custom((value) => {
     if (Array.isArray(value)) {

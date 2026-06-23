@@ -1,6 +1,44 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { resolveProductPricing } from "../utils/pricing";
 
+
+export interface IProductVariant {
+
+  size: string;
+
+
+  color: string;
+
+
+  stock: number;
+}
+
+const variantSchema = new Schema<IProductVariant>(
+  {
+    size: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    color: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    stock: {
+      type: Number,
+      required: true,
+      min: [0, "Stock cannot be negative"],
+      default: 0,
+    },
+  },
+  { _id: false },
+);
+
+
+
 export interface IProduct extends Document {
   name: string;
   category: "men" | "women" | "kids";
@@ -14,6 +52,8 @@ export interface IProduct extends Document {
   sizes: string[];
   colors: string[];
   features: string[];
+
+  variants: IProductVariant[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -84,6 +124,11 @@ const productSchema = new Schema<IProduct>(
 
     features: {
       type: [String],
+      default: [],
+    },
+
+    variants: {
+      type: [variantSchema],
       default: [],
     },
   },
