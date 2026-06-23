@@ -17,6 +17,7 @@ import OptimizedImage from "../components/OptimizedImage";
 import type { Product } from "../types/product";
 import { normalizeProductPricing } from "../utils/pricing";
 import { useWishlist } from "../hooks/useWishlist";
+
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
@@ -26,10 +27,7 @@ const currencyFormatter = new Intl.NumberFormat("en-IN", {
 const ProductDetails = () => {
   const { id } = useParams();
   const { addToCart } = useCart();
-  const {
-  toggleWishlist,
-  isWishlisted,
-} = useWishlist();
+  const { toggleWishlist, isWishlisted } = useWishlist();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -54,31 +52,52 @@ const ProductDetails = () => {
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
 
+  // Active variant stock (for the currently selected size + color combination)
   const activeVariant = useMemo(() => {
     if (!product || !product.variants || product.variants.length === 0) return null;
-    return product.variants.find(
-      (v) => v.size === selectedSize && v.color === selectedColor
-    ) ?? null;
+    return (
+      product.variants.find(
+        (v) => v.size === selectedSize && v.color === selectedColor
+      ) ?? null
+    );
   }, [product, selectedSize, selectedColor]);
 
   const availableStock = activeVariant?.stock ?? null;
   const isOutOfStock = availableStock !== null && availableStock === 0;
-  const isLowStock = availableStock !== null && availableStock > 0 && availableStock <= 10;
+  const isLowStock =
+    availableStock !== null && availableStock > 0 && availableStock <= 10;
+
+  // --- Per-size stock helpers ---
+  // Returns the total stock across all colors for a given size,
+  // or null if variants are not defined (treat as in-stock).
+  const getStockForSize = (size: string): number | null => {
+    if (!product?.variants || product.variants.length === 0) return null;
+    const variantsForSize = product.variants.filter((v) => v.size === size);
+    if (variantsForSize.length === 0) return null;
+    return variantsForSize.reduce((sum, v) => sum + (v.stock ?? 0), 0);
+  };
+
+  // --- Per-color stock helpers (scoped to the currently selected size) ---
+  // Returns stock for a specific color + currently selected size combination.
+  const getStockForColor = (color: string): number | null => {
+    if (!product?.variants || product.variants.length === 0) return null;
+    const variant = product.variants.find(
+      (v) => v.size === selectedSize && v.color === color
+    );
+    if (!variant) return null;
+    return variant.stock ?? null;
+  };
 
   useEffect(() => {
     let isActive = true;
 
     Promise.resolve()
       .then(() => {
-        if (!id) {
-          return null;
-        }
-
+        if (!id) return null;
         if (isActive) {
           setLoading(true);
           setSelectedImage(0);
         }
-
         return getProductById(id);
       })
       .then((data) => {
@@ -90,14 +109,10 @@ const ProductDetails = () => {
         }
       })
       .catch(() => {
-        if (isActive) {
-          setProduct(null);
-        }
+        if (isActive) setProduct(null);
       })
       .finally(() => {
-        if (isActive) {
-          setLoading(false);
-        }
+        if (isActive) setLoading(false);
       });
 
     return () => {
@@ -111,21 +126,15 @@ const ProductDetails = () => {
 
   useEffect(() => {
     let isActive = true;
-
-    if (!product) {
-      return;
-    }
+    if (!product) return;
 
     getProducts({ category: product.category, limit: 5 })
       .then((items) => {
-        if (isActive) {
+        if (isActive)
           setRelatedProducts(items.filter((item) => item.id !== product.id));
-        }
       })
       .catch(() => {
-        if (isActive) {
-          setRelatedProducts([]);
-        }
+        if (isActive) setRelatedProducts([]);
       });
 
     return () => {
@@ -158,7 +167,6 @@ const ProductDetails = () => {
           <h1 className="text-2xl font-semibold text-gray-900">
             Product not found
           </h1>
-
           <Link
             to="/products"
             className="mt-4 inline-block text-sm text-gray-600 underline"
@@ -173,10 +181,9 @@ const ProductDetails = () => {
   const pricing = normalizeProductPricing(product);
   const amountSaved = pricing.actualPrice - pricing.sellingPrice;
   const hasDiscount = pricing.discountPercentage > 0 && amountSaved > 0;
-const wishlisted = isWishlisted(product.id);
-  const handleAddToCart = (
-    e: React.MouseEvent<HTMLButtonElement>
-  ) => {
+  const wishlisted = isWishlisted(product.id);
+
+  const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -186,7 +193,6 @@ const wishlisted = isWishlisted(product.id);
     }
 
     const button = e.currentTarget;
-
     const circle = document.createElement("span");
     const diameter = Math.max(button.clientWidth, button.clientHeight);
     const radius = diameter / 2;
@@ -202,7 +208,6 @@ const wishlisted = isWishlisted(product.id);
 
     const ripple = button.getElementsByClassName("ripple")[0];
     if (ripple) ripple.remove();
-
     button.appendChild(circle);
 
     addToCart(product, {
@@ -216,26 +221,21 @@ const wishlisted = isWishlisted(product.id);
       cartIcon.classList.remove("cart-in");
       void cartIcon.offsetWidth;
       cartIcon.classList.add("cart-in");
-
-      setTimeout(() => {
-        cartIcon.classList.remove("cart-in");
-      }, 250);
+      setTimeout(() => cartIcon.classList.remove("cart-in"), 250);
     }
   };
-  const handleWishlistToggle = async () => {
-  if (!isAuthenticated) {
-    navigate("/login", {
-      state: { from: location },
-    });
-    return;
-  }
 
-  try {
-    await toggleWishlist(product);
-  } catch (error) {
-    console.error(error);
-  }
-};
+  const handleWishlistToggle = async () => {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: location } });
+      return;
+    }
+    try {
+      await toggleWishlist(product);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const handlePrevImage = () => {
     setSelectedImage((prev) =>
@@ -253,7 +253,6 @@ const wishlisted = isWishlisted(product.id);
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-
     setZoomPosition({
       x: Math.max(0, Math.min(100, x)),
       y: Math.max(0, Math.min(100, y)),
@@ -271,9 +270,7 @@ const wishlisted = isWishlisted(product.id);
 
   const handleTouchEnd = () => {
     if (touchStartX === null || touchEndX === null) return;
-
     const distance = touchStartX - touchEndX;
-
     if (distance > 50) handleNextImage();
     if (distance < -50) handlePrevImage();
   };
@@ -281,26 +278,24 @@ const wishlisted = isWishlisted(product.id);
   return (
     <section className="bg-white py-12 md:py-16">
       <div className="mx-auto max-w-7xl px-6 md:px-12">
+        {/* Breadcrumb */}
         <div className="mb-8 flex flex-wrap items-center gap-2 text-sm text-gray-500">
           <Link to="/" className="hover:text-black">
             Home
           </Link>
-
           <BreadcrumbChevron size={16} />
-
           <Link
             to={`/${product.category}`}
             className="capitalize hover:text-black"
           >
             {product.category}
           </Link>
-
           <BreadcrumbChevron size={16} />
-
           <span className="text-gray-900">{product.name}</span>
         </div>
 
         <div className="grid items-start gap-12 lg:grid-cols-[0.9fr_1.1fr]">
+          {/* ── Image Gallery ── */}
           <div className="space-y-4 lg:max-w-md">
             <div
               className="relative overflow-hidden rounded-2xl bg-gray-100"
@@ -337,14 +332,12 @@ const wishlisted = isWishlisted(product.id);
                   >
                     <ChevronLeft size={18} />
                   </button>
-
                   <button
                     onClick={handleNextImage}
                     className="absolute right-3 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-black shadow-md transition hover:bg-white md:flex"
                   >
                     <ChevronRight size={18} />
                   </button>
-
                   <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2 md:hidden">
                     {galleryImages.map((_, index) => (
                       <span
@@ -389,6 +382,7 @@ const wishlisted = isWishlisted(product.id);
             )}
           </div>
 
+          {/* ── Product Info ── */}
           <div className="flex flex-col">
             <p className="text-sm uppercase tracking-[0.2em] text-gray-500">
               {product.category}
@@ -398,6 +392,7 @@ const wishlisted = isWishlisted(product.id);
               {product.name}
             </h1>
 
+            {/* Pricing */}
             <div className="mt-4 space-y-2">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <p className="text-2xl font-semibold text-black">
@@ -421,32 +416,82 @@ const wishlisted = isWishlisted(product.id);
               )}
             </div>
 
-            <p className="mt-6 leading-7 text-gray-600">
-              {product.description}
-            </p>
+            <p className="mt-6 leading-7 text-gray-600">{product.description}</p>
 
+            {/* ── Size Selector ── */}
             <div className="mt-8">
               <p className="mb-3 text-sm font-medium text-gray-900">
                 Select Size
               </p>
 
               <div className="flex flex-wrap gap-3">
-                {product.sizes.map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`rounded-md border px-4 py-2 text-sm transition ${
-                      selectedSize === size
-                        ? "border-black bg-black text-white"
-                        : "border-gray-300 text-gray-800 hover:border-black"
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
+                {product.sizes.map((size) => {
+                  const sizeStock = getStockForSize(size);
+                  const isSizeOOS = sizeStock !== null && sizeStock === 0;
+                  const isSizeLow =
+                    sizeStock !== null && sizeStock > 0 && sizeStock <= 10;
+                  const isSelected = selectedSize === size;
+
+                  return (
+                    <div key={size} className="relative flex flex-col items-center gap-1">
+                      <button
+                        onClick={() => !isSizeOOS && setSelectedSize(size)}
+                        disabled={isSizeOOS}
+                        aria-label={
+                          isSizeOOS
+                            ? `Size ${size} – out of stock`
+                            : isSizeLow
+                            ? `Size ${size} – only ${sizeStock} left`
+                            : `Size ${size}`
+                        }
+                        className={[
+                          "relative rounded-md border px-4 py-2 text-sm transition",
+                          isSelected
+                            ? "border-black bg-black text-white"
+                            : isSizeOOS
+                            ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-300"
+                            : "border-gray-300 text-gray-800 hover:border-black",
+                        ].join(" ")}
+                      >
+                        {/* Diagonal strikethrough line for OOS */}
+                        {isSizeOOS && (
+                          <span
+                            aria-hidden="true"
+                            className="pointer-events-none absolute inset-0 overflow-hidden rounded-md"
+                          >
+                            <svg
+                              className="absolute inset-0 h-full w-full"
+                              viewBox="0 0 100 100"
+                              preserveAspectRatio="none"
+                            >
+                              <line
+                                x1="0"
+                                y1="100"
+                                x2="100"
+                                y2="0"
+                                stroke="#d1d5db"
+                                strokeWidth="1.5"
+                                vectorEffect="non-scaling-stroke"
+                              />
+                            </svg>
+                          </span>
+                        )}
+                        {size}
+                      </button>
+
+                      {/* Low stock count beneath the button */}
+                      {isSizeLow && !isSizeOOS && (
+                        <span className="text-[11px] font-medium text-amber-600">
+                          {sizeStock} left
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
+            {/* ── Color Selector ── */}
             {product.colors.length > 0 && (
               <div className="mt-8">
                 <p className="mb-3 text-sm font-medium text-gray-900">
@@ -454,37 +499,90 @@ const wishlisted = isWishlisted(product.id);
                 </p>
 
                 <div className="flex flex-wrap gap-3">
-                  {product.colors.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => setSelectedColor(color)}
-                      className={`rounded-md border px-4 py-2 text-sm transition ${
-                        selectedColor === color
-                          ? "border-black bg-black text-white"
-                          : "border-gray-300 text-gray-800 hover:border-black"
-                      }`}
-                    >
-                      {color}
-                    </button>
-                  ))}
+                  {product.colors.map((color) => {
+                    const colorStock = getStockForColor(color);
+                    const isColorOOS = colorStock !== null && colorStock === 0;
+                    const isColorLow =
+                      colorStock !== null &&
+                      colorStock > 0 &&
+                      colorStock <= 10;
+                    const isSelected = selectedColor === color;
+
+                    return (
+                      <div key={color} className="relative flex flex-col items-center gap-1">
+                        <button
+                          onClick={() => !isColorOOS && setSelectedColor(color)}
+                          disabled={isColorOOS}
+                          aria-label={
+                            isColorOOS
+                              ? `${color} – out of stock`
+                              : isColorLow
+                              ? `${color} – only ${colorStock} left`
+                              : color
+                          }
+                          className={[
+                            "relative rounded-md border px-4 py-2 text-sm transition",
+                            isSelected
+                              ? "border-black bg-black text-white"
+                              : isColorOOS
+                              ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-300"
+                              : "border-gray-300 text-gray-800 hover:border-black",
+                          ].join(" ")}
+                        >
+                          {/* Diagonal strikethrough line for OOS */}
+                          {isColorOOS && (
+                            <span
+                              aria-hidden="true"
+                              className="pointer-events-none absolute inset-0 overflow-hidden rounded-md"
+                            >
+                              <svg
+                                className="absolute inset-0 h-full w-full"
+                                viewBox="0 0 100 100"
+                                preserveAspectRatio="none"
+                              >
+                                <line
+                                  x1="0"
+                                  y1="100"
+                                  x2="100"
+                                  y2="0"
+                                  stroke="#d1d5db"
+                                  strokeWidth="1.5"
+                                  vectorEffect="non-scaling-stroke"
+                                />
+                              </svg>
+                            </span>
+                          )}
+                          {color}
+                        </button>
+
+                        {/* Low stock count beneath the button */}
+                        {isColorLow && !isColorOOS && (
+                          <span className="text-[11px] font-medium text-amber-600">
+                            {colorStock} left
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
+            {/* ── Stock status for the active combination ── */}
             {isOutOfStock && (
-              <p className="mt-5 text-sm font-medium text-red-600">Out of Stock</p>
+              <p className="mt-5 text-sm font-medium text-red-600">
+                Out of Stock
+              </p>
             )}
-
             {isLowStock && (
               <p className="mt-5 text-sm font-medium text-amber-600">
-                Only {availableStock} left in stock
+                Only {availableStock} left in stock — order soon
               </p>
             )}
 
+            {/* ── Quantity ── */}
             <div className="mt-8">
-              <p className="mb-3 text-sm font-medium text-gray-900">
-                Quantity
-              </p>
+              <p className="mb-3 text-sm font-medium text-gray-900">Quantity</p>
 
               <div className="flex w-fit items-center overflow-hidden rounded-md border border-gray-300">
                 <button
@@ -507,7 +605,10 @@ const wishlisted = isWishlisted(product.id);
                         : prev + 1
                     )
                   }
-                  disabled={isOutOfStock || (availableStock !== null && quantity >= availableStock)}
+                  disabled={
+                    isOutOfStock ||
+                    (availableStock !== null && quantity >= availableStock)
+                  }
                   className="px-4 py-2 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Plus size={16} />
@@ -515,43 +616,39 @@ const wishlisted = isWishlisted(product.id);
               </div>
             </div>
 
+            {/* ── CTA Buttons ── */}
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-  <button
-    onClick={handleAddToCart}
-    disabled={isOutOfStock}
-    className="relative overflow-hidden flex flex-1 items-center justify-center gap-2 rounded-md bg-black px-6 py-3 text-sm text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
-  >
-    <ShoppingCart size={18} />
-    {isOutOfStock ? "Out of Stock" : "Add to Cart"}
-  </button>
+              <button
+                onClick={handleAddToCart}
+                disabled={isOutOfStock}
+                className="relative overflow-hidden flex flex-1 items-center justify-center gap-2 rounded-md bg-black px-6 py-3 text-sm text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ShoppingCart size={18} />
+                {isOutOfStock ? "Out of Stock" : "Add to Cart"}
+              </button>
 
-  <button
-    onClick={handleWishlistToggle}
-    className={`flex items-center justify-center gap-2 rounded-md border px-6 py-3 text-sm transition ${
-      wishlisted
-        ? "border-red-500 bg-red-500 text-white"
-        : "border-black text-black hover:bg-black hover:text-white"
-    }`}
-  >
-    <Heart
-      size={18}
-      className={wishlisted ? "fill-white" : ""}
-    />
-    {wishlisted
-      ? "Wishlisted"
-      : "Add to Wishlist"}
-  </button>
+              <button
+                onClick={handleWishlistToggle}
+                className={`flex items-center justify-center gap-2 rounded-md border px-6 py-3 text-sm transition ${
+                  wishlisted
+                    ? "border-red-500 bg-red-500 text-white"
+                    : "border-black text-black hover:bg-black hover:text-white"
+                }`}
+              >
+                <Heart size={18} className={wishlisted ? "fill-white" : ""} />
+                {wishlisted ? "Wishlisted" : "Add to Wishlist"}
+              </button>
 
-  <button className="flex-1 rounded-md border border-black px-6 py-3 text-sm text-black transition hover:bg-black hover:text-white">
-    Buy Now
-  </button>
-</div>
+              <button className="flex-1 rounded-md border border-black px-6 py-3 text-sm text-black transition hover:bg-black hover:text-white">
+                Buy Now
+              </button>
+            </div>
 
+            {/* ── Product Highlights ── */}
             <div className="mt-10 border-t border-gray-200 pt-8">
               <h2 className="text-lg font-semibold text-gray-900">
                 Product Highlights
               </h2>
-
               <ul className="mt-4 space-y-3 text-sm text-gray-600">
                 {product.features.map((feature, index) => (
                   <li key={index}>• {feature}</li>
@@ -559,20 +656,16 @@ const wishlisted = isWishlisted(product.id);
               </ul>
             </div>
 
+            {/* ── Info Cards ── */}
             <div className="mt-10 grid gap-4 sm:grid-cols-2">
               <div className="rounded-xl bg-gray-50 p-4">
-                <h3 className="text-sm font-medium text-gray-900">
-                  Delivery
-                </h3>
+                <h3 className="text-sm font-medium text-gray-900">Delivery</h3>
                 <p className="mt-2 text-sm text-gray-600">
                   Estimated delivery in 3–5 business days.
                 </p>
               </div>
-
               <div className="rounded-xl bg-gray-50 p-4">
-                <h3 className="text-sm font-medium text-gray-900">
-                  Returns
-                </h3>
+                <h3 className="text-sm font-medium text-gray-900">Returns</h3>
                 <p className="mt-2 text-sm text-gray-600">
                   Easy 7-day return and exchange policy.
                 </p>
@@ -581,12 +674,12 @@ const wishlisted = isWishlisted(product.id);
           </div>
         </div>
 
+        {/* ── Related Products ── */}
         {relatedProducts.length > 0 && (
           <div className="mt-20">
             <h2 className="text-2xl font-semibold tracking-tight text-gray-900">
               You may also like
             </h2>
-
             <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
               {relatedProducts.slice(0, 4).map((item) => (
                 <ProductCard key={item.id} product={item} />
