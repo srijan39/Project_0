@@ -92,6 +92,31 @@ const validateVariantsField = [
   }),
 ];
 
+const validateDuplicateVariants = (variants: unknown) => {
+  if (!Array.isArray(variants) || variants.length === 0) return true;
+
+  const seen = new Set<string>();
+
+  for (const v of variants) {
+    if (typeof v !== "object" || v === null) continue;
+
+    const item = v as Record<string, unknown>;
+    const color = String(item.color ?? "").trim();
+    const size = String(item.size ?? "").trim();
+    const key = `${color}|${size}`;
+
+    if (seen.has(key)) {
+      throw new Error(
+        `Duplicate variant: color "${color}" + size "${size}" appears more than once`
+      );
+    }
+
+    seen.add(key);
+  }
+
+  return true;
+};
+
 const validateBulkVariantsField = [
   body("*.variants")
     .optional()
@@ -120,6 +145,8 @@ const validateBulkVariantsField = [
     .withMessage("variant stock is required")
     .isInt({ min: 0 })
     .withMessage("variant stock must be a non-negative integer"),
+
+  body("*.variants").custom(validateDuplicateVariants),
 ];
 
 const validateCreatePricing = body().custom((value) => {

@@ -2,17 +2,18 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Cart from "../models/cart.model";
 import Product from "../models/product.model";
-import type { IProductVariant } from "../models/product.model";
 import asyncHandler from "../utils/asyncHandler";
+import {
+  InventoryError,
+  normalizeVariantField,
+  validateVariantSelection,
+} from "../utils/inventory";
 
 const cartProductPopulate = {
   path: "items.product",
   select:
     "_id name category price actualPrice sellingPrice discountPercentage image images description features variants",
 };
-
-const normalizeVariantField = (value?: unknown): string =>
-  typeof value === "string" && value.trim() ? value.trim() : "";
 
 const normalizeParam = (value: unknown) =>
   Array.isArray(value) ? value[0] : String(value || "");
@@ -26,54 +27,6 @@ const isSameCartItem = (
   item.product.toString() === productId &&
   item.size === size &&
   item.color === color;
-
-const findVariant = (
-  variants: IProductVariant[],
-  color: string,
-  size: string
-): IProductVariant | undefined =>
-  variants.find(
-    (v) => v.color === color && v.size === size
-  );
-
-const checkVariantStock = (
-  product: { name: string; variants: IProductVariant[] },
-  color: string,
-  size: string,
-  requestedTotal: number
-): { status: number; message: string } | null => {
-  if (product.variants.length === 0) {
-    return {
-      status: 400,
-      message: `"${product.name}" has no available variants`,
-    };
-  }
-
-  const variant = findVariant(product.variants, color, size);
-
-  if (!variant) {
-    return {
-      status: 400,
-      message: `The variant color "${color}" size "${size}" is not available for "${product.name}"`,
-    };
-  }
-
-  if (variant.stock === 0) {
-    return {
-      status: 400,
-      message: `"${product.name}" (${color}/${size}) is out of stock`,
-    };
-  }
-
-  if (requestedTotal > variant.stock) {
-    return {
-      status: 400,
-      message: `Only ${variant.stock} unit${variant.stock === 1 ? "" : "s"} of "${product.name}" (${color}/${size}) available`,
-    };
-  }
-
-  return null;
-};
 
 export const addToCart = asyncHandler(
   async (req: Request, res: Response) => {
@@ -112,13 +65,6 @@ export const addToCart = asyncHandler(
       });
     }
 
-    if (product.variants.length > 0 && (!color || !size)) {
-      return res.status(400).json({
-        success: false,
-        message: "Color and size are required for this product",
-      });
-    }
-
     let cart = await Cart.findOne({
       user: req.user?._id,
     });
@@ -137,13 +83,17 @@ export const addToCart = asyncHandler(
     const currentCartQty = existingItem?.quantity ?? 0;
     const totalRequested = currentCartQty + itemQuantity;
 
-    const stockError = checkVariantStock(product, color, size, totalRequested);
+    try {
+      validateVariantSelection(product, color, size, totalRequested);
+    } catch (error) {
+      if (error instanceof InventoryError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
 
-    if (stockError) {
-      return res.status(stockError.status).json({
-        success: false,
-        message: stockError.message,
-      });
+      throw error;
     }
 
     if (existingItem) {
@@ -264,15 +214,24 @@ export const updateCartItem = asyncHandler(
     if (quantity > 0) {
       const product = await Product.findById(productId).select("name variants");
 
-      if (product) {
-        const stockError = checkVariantStock(product, color, size, quantity);
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: "Product not found",
+        });
+      }
 
-        if (stockError) {
-          return res.status(stockError.status).json({
+      try {
+        validateVariantSelection(product, color, size, quantity);
+      } catch (error) {
+        if (error instanceof InventoryError) {
+          return res.status(error.statusCode).json({
             success: false,
-            message: stockError.message,
+            message: error.message,
           });
         }
+
+        throw error;
       }
     }
 
