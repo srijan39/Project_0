@@ -1,27 +1,21 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { resolveProductPricing } from "../utils/pricing";
 
-
 export interface IProductVariant {
-
-  size: string;
-
-
   color: string;
-
-
+  size: string;
   stock: number;
 }
 
 const variantSchema = new Schema<IProductVariant>(
   {
-    size: {
+    color: {
       type: String,
       required: true,
       trim: true,
     },
 
-    color: {
+    size: {
       type: String,
       required: true,
       trim: true,
@@ -37,8 +31,6 @@ const variantSchema = new Schema<IProductVariant>(
   { _id: false },
 );
 
-
-
 export interface IProduct extends Document {
   name: string;
   category: "men" | "women" | "kids";
@@ -49,11 +41,10 @@ export interface IProduct extends Document {
   image: string;
   images: string[];
   description: string;
-  sizes: string[];
-  colors: string[];
   features: string[];
-
   variants: IProductVariant[];
+  readonly sizes: string[];
+  readonly colors: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -112,16 +103,6 @@ const productSchema = new Schema<IProduct>(
       required: true,
     },
 
-    sizes: {
-      type: [String],
-      default: [],
-    },
-
-    colors: {
-      type: [String],
-      default: [],
-    },
-
     features: {
       type: [String],
       default: [],
@@ -134,8 +115,18 @@ const productSchema = new Schema<IProduct>(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
+
+productSchema.virtual("sizes").get(function (this: IProduct): string[] {
+  return [...new Set(this.variants.map((v) => v.size))];
+});
+
+productSchema.virtual("colors").get(function (this: IProduct): string[] {
+  return [...new Set(this.variants.map((v) => v.color))];
+});
 
 productSchema.pre("validate", function calculateProductPricing() {
   const pricing = resolveProductPricing(this);

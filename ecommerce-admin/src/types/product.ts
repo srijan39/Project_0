@@ -1,6 +1,6 @@
 export interface ProductVariant {
-  size: string;
   color: string;
+  size: string;
   stock: number;
 }
 
@@ -32,8 +32,6 @@ export interface ProductInput {
   image: string;
   images: string[];
   description: string;
-  sizes: string[];
-  colors: string[];
   features: string[];
   variants: ProductVariant[];
 }

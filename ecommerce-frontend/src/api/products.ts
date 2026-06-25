@@ -1,5 +1,5 @@
 import { apiRequest } from "./client";
-import type { BackendProduct, Product, ProductCategory } from "../types/product";
+import type { BackendProduct, Product, ProductCategory, ProductVariant } from "../types/product";
 import { normalizeProductPricing } from "../utils/pricing";
 
 interface ProductsResponse {
@@ -19,8 +19,15 @@ interface ProductQuery {
   sort?: "price_asc" | "price_desc" | "newest" | "oldest";
 }
 
+const deriveColorsFromVariants = (variants: ProductVariant[]): string[] =>
+  [...new Set(variants.map((v) => v.color))];
+
+const deriveSizesFromVariants = (variants: ProductVariant[]): string[] =>
+  [...new Set(variants.map((v) => v.size))];
+
 export const mapProduct = (product: BackendProduct): Product => {
   const pricing = normalizeProductPricing(product);
+  const variants = product.variants ?? [];
 
   return {
     id: product._id,
@@ -30,10 +37,10 @@ export const mapProduct = (product: BackendProduct): Product => {
     image: product.image,
     images: product.images?.length ? product.images : [product.image],
     description: product.description,
-    sizes: product.sizes || [],
-    colors: product.colors ?? [],
+    sizes: product.sizes?.length ? product.sizes : deriveSizesFromVariants(variants),
+    colors: product.colors?.length ? product.colors : deriveColorsFromVariants(variants),
     features: product.features || [],
-    variants: product.variants ?? [],
+    variants,
   };
 };
 

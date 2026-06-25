@@ -6,7 +6,7 @@ import { resolveProductPricing } from "../utils/pricing";
 
 type ProductPayload = Record<string, unknown>;
 
-const arrayFields = ["images", "sizes", "colors", "features"] as const;
+const arrayFields = ["images", "features"] as const;
 
 const normalizeStringArray = (value: unknown) => {
   if (!Array.isArray(value)) return [];
@@ -17,7 +17,6 @@ const normalizeStringArray = (value: unknown) => {
     .filter(Boolean);
 };
 
-
 const normalizeVariants = (value: unknown): IProductVariant[] => {
   if (!Array.isArray(value)) return [];
 
@@ -26,11 +25,17 @@ const normalizeVariants = (value: unknown): IProductVariant[] => {
       item !== null && typeof item === "object"
     )
     .map((item) => ({
-      size: String(item.size ?? "").trim(),
       color: String(item.color ?? "").trim(),
+      size: String(item.size ?? "").trim(),
       stock: Math.max(0, Math.round(Number(item.stock) || 0)),
     }));
 };
+
+const deriveColorsFromVariants = (variants: IProductVariant[]): string[] =>
+  [...new Set(variants.map((v) => v.color))];
+
+const deriveSizesFromVariants = (variants: IProductVariant[]): string[] =>
+  [...new Set(variants.map((v) => v.size))];
 
 const normalizeProductPayload = (
   payload: ProductPayload,
@@ -45,10 +50,12 @@ const normalizeProductPayload = (
     }
   });
 
-
   if (Array.isArray(payload.variants) || includeDefaults) {
     normalizedPayload.variants = normalizeVariants(payload.variants);
   }
+
+  delete normalizedPayload.sizes;
+  delete normalizedPayload.colors;
 
   if (
     fallback ||
@@ -78,6 +85,9 @@ const serializeProduct = (product: unknown) => {
       : ({ ...(product as Record<string, unknown>) } as Record<string, unknown>);
 
   const pricing = resolveProductPricing(productObject);
+  const variants = Array.isArray(productObject.variants)
+    ? (productObject.variants as IProductVariant[])
+    : [];
 
   return {
     ...productObject,
@@ -86,10 +96,10 @@ const serializeProduct = (product: unknown) => {
     discountPercentage: pricing.discountPercentage,
     price: pricing.price,
     images: Array.isArray(productObject.images) ? productObject.images : [],
-    sizes: Array.isArray(productObject.sizes) ? productObject.sizes : [],
-    colors: Array.isArray(productObject.colors) ? productObject.colors : [],
     features: Array.isArray(productObject.features) ? productObject.features : [],
-    variants: Array.isArray(productObject.variants) ? productObject.variants : [],
+    variants,
+    colors: deriveColorsFromVariants(variants),
+    sizes: deriveSizesFromVariants(variants),
   };
 };
 

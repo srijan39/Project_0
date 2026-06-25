@@ -1,8 +1,8 @@
 export type ProductCategory = "men" | "women" | "kids";
 
 export interface ProductVariant {
-  size: string;
   color: string;
+  size: string;
   stock: number;
 }
 
