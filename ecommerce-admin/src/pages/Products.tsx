@@ -27,10 +27,14 @@ interface ProductResponse {
   data?: Product;
 }
 
-interface ProductVariantFormItem {
+interface ProductVariantSizeFormItem {
   size: string;
-  color: string;
   stock: string;
+}
+
+interface ProductVariantColorGroup {
+  color: string;
+  sizes: ProductVariantSizeFormItem[];
 }
 
 interface ProductFormState {
@@ -42,7 +46,7 @@ interface ProductFormState {
   images: string[];
   description: string;
   features: string;
-  variants: ProductVariantFormItem[];
+  variants: ProductVariantColorGroup[];
 }
 
 type FormMode = "create" | "edit";
@@ -78,24 +82,59 @@ const parseList = (value: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-const serializeProduct = (formState: ProductFormState): ProductInput => ({
-  name: formState.name.trim(),
-  category: formState.category,
-  price: Number(formState.sellingPrice),
-  actualPrice: Number(formState.actualPrice),
-  sellingPrice: Number(formState.sellingPrice),
-  image: formState.image.trim(),
-  images: formState.images,
-  description: formState.description.trim(),
-  sizes: [...new Set(formState.variants.map((v) => v.size.trim()).filter(Boolean))],
-  colors: [...new Set(formState.variants.map((v) => v.color.trim()).filter(Boolean))],
-  features: parseList(formState.features),
-  variants: formState.variants.map((v) => ({
-    size: v.size.trim(),
-    color: v.color.trim(),
-    stock: Math.max(0, Math.round(Number(v.stock) || 0)),
-  })),
-});
+const flattenVariantGroups = (variants: ProductVariantColorGroup[]) =>
+  variants.flatMap((group) =>
+    group.sizes.map((variant) => ({
+      color: group.color.trim(),
+      size: variant.size.trim(),
+      stock: Math.max(0, Math.round(Number(variant.stock) || 0)),
+    }))
+  );
+
+const serializeProduct = (formState: ProductFormState): ProductInput => {
+  const variants = flattenVariantGroups(formState.variants);
+
+  return {
+    name: formState.name.trim(),
+    category: formState.category,
+    price: Number(formState.sellingPrice),
+    actualPrice: Number(formState.actualPrice),
+    sellingPrice: Number(formState.sellingPrice),
+    image: formState.image.trim(),
+    images: formState.images,
+    description: formState.description.trim(),
+    sizes: [...new Set(variants.map((variant) => variant.size).filter(Boolean))],
+    colors: [...new Set(variants.map((variant) => variant.color).filter(Boolean))],
+    features: parseList(formState.features),
+    variants,
+  };
+};
+
+const groupVariantsByColor = (
+  variants: Product["variants"]
+): ProductVariantColorGroup[] => {
+  const groups: ProductVariantColorGroup[] = [];
+
+  variants.forEach((variant) => {
+    const color = variant.color;
+    const existingGroup = groups.find((group) => group.color === color);
+    const sizeItem = {
+      size: variant.size,
+      stock: String(variant.stock),
+    };
+
+    if (existingGroup) {
+      existingGroup.sizes.push(sizeItem);
+    } else {
+      groups.push({
+        color,
+        sizes: [sizeItem],
+      });
+    }
+  });
+
+  return groups;
+};
 
 const productToFormState = (product: Product): ProductFormState => {
   const pricing = normalizeProductPricing(product);
@@ -109,11 +148,7 @@ const productToFormState = (product: Product): ProductFormState => {
     images: product.images ?? [],
     description: product.description,
     features: product.features?.join(", ") ?? "",
-    variants: (product.variants ?? []).map((v) => ({
-      size: v.size,
-      color: v.color,
-      stock: String(v.stock),
-    })),
+    variants: groupVariantsByColor(product.variants ?? []),
   };
 };
 
@@ -134,10 +169,30 @@ const validateForm = (formState: ProductFormState) => {
     return "Selling price cannot exceed original price";
   }
 
-  for (const variant of formState.variants) {
-    const stock = Number(variant.stock);
-    if (!Number.isFinite(stock) || stock < 0) {
-      return "All variant stock values must be 0 or greater";
+  const seenVariants = new Set<string>();
+
+  for (const group of formState.variants) {
+    const color = group.color.trim();
+
+    if (!color) return "Each variant color must have a name";
+    if (group.sizes.length === 0) return `Add at least one size for ${color}`;
+
+    for (const variant of group.sizes) {
+      const size = variant.size.trim();
+      const stock = Number(variant.stock);
+
+      if (!size) return `Each size under ${color} must have a name`;
+      if (!Number.isInteger(stock) || stock < 0) {
+        return "All variant stock values must be whole numbers 0 or greater";
+      }
+
+      const variantKey = `${color.toLowerCase()}|${size.toLowerCase()}`;
+
+      if (seenVariants.has(variantKey)) {
+        return `Duplicate variant: ${color} / ${size}`;
+      }
+
+      seenVariants.add(variantKey);
     }
   }
 
@@ -294,7 +349,7 @@ interface ProductFormModalProps {
   uploadMessage: string;
   errorMessage: string;
   onChange: (field: keyof ProductFormState, value: string) => void;
-  onVariantsChange: (variants: ProductVariantFormItem[]) => void;
+  onVariantsChange: (variants: ProductVariantColorGroup[]) => void;
   onUploadMainImage: (file: File | undefined) => void;
   onUploadGalleryImages: (files: FileList | null) => void;
   onRemoveMainImage: () => void;
@@ -325,21 +380,65 @@ const ProductFormModal = ({
       ? pricingPreview.actualPrice - pricingPreview.sellingPrice
       : 0;
 
-  const addVariant = () => {
-    onVariantsChange([...formState.variants, { size: "", color: "", stock: "0" }]);
+  const addColorGroup = () => {
+    onVariantsChange([
+      ...formState.variants,
+      { color: "", sizes: [{ size: "", stock: "0" }] },
+    ]);
   };
 
-  const removeVariant = (index: number) => {
-    onVariantsChange(formState.variants.filter((_, i) => i !== index));
+  const removeColorGroup = (colorIndex: number) => {
+    onVariantsChange(formState.variants.filter((_, i) => i !== colorIndex));
   };
 
-  const updateVariantField = (
-    index: number,
-    field: keyof ProductVariantFormItem,
+  const updateColorGroup = (colorIndex: number, color: string) => {
+    onVariantsChange(
+      formState.variants.map((group, i) =>
+        i === colorIndex ? { ...group, color } : group
+      )
+    );
+  };
+
+  const addSizeToColor = (colorIndex: number) => {
+    onVariantsChange(
+      formState.variants.map((group, i) =>
+        i === colorIndex
+          ? { ...group, sizes: [...group.sizes, { size: "", stock: "0" }] }
+          : group
+      )
+    );
+  };
+
+  const removeSizeFromColor = (colorIndex: number, sizeIndex: number) => {
+    onVariantsChange(
+      formState.variants.map((group, i) =>
+        i === colorIndex
+          ? {
+              ...group,
+              sizes: group.sizes.filter((_, sizeI) => sizeI !== sizeIndex),
+            }
+          : group
+      )
+    );
+  };
+
+  const updateVariantSizeField = (
+    colorIndex: number,
+    sizeIndex: number,
+    field: keyof ProductVariantSizeFormItem,
     value: string
   ) => {
     onVariantsChange(
-      formState.variants.map((v, i) => (i === index ? { ...v, [field]: value } : v))
+      formState.variants.map((group, i) =>
+        i === colorIndex
+          ? {
+              ...group,
+              sizes: group.sizes.map((variant, sizeI) =>
+                sizeI === sizeIndex ? { ...variant, [field]: value } : variant
+              ),
+            }
+          : group
+      )
     );
   };
 
@@ -612,71 +711,113 @@ const ProductFormModal = ({
             <div>
               <p className="text-sm font-medium text-slate-700">Variants</p>
               <p className="mt-0.5 text-xs text-slate-400">
-                Define size, color, and stock for each variant.
+                Manage stock by color and size.
               </p>
             </div>
             <button
               type="button"
-              onClick={addVariant}
+              onClick={addColorGroup}
               className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
-              Add Variant
+              Add Color
             </button>
           </div>
 
           {formState.variants.length > 0 ? (
-            <div className="space-y-2">
-              <div className="grid grid-cols-[1fr_1fr_80px_auto] gap-2 px-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Size
-                </p>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Color
-                </p>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Stock
-                </p>
-                <span />
-              </div>
-
-              {formState.variants.map((variant, index) => (
+            <div className="space-y-3">
+              {formState.variants.map((group, colorIndex) => (
                 <div
-                  key={index}
-                  className="grid grid-cols-[1fr_1fr_80px_auto] items-center gap-2"
+                  key={colorIndex}
+                  className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3"
                 >
-                  <input
-                    value={variant.size}
-                    onChange={(event) =>
-                      updateVariantField(index, "size", event.target.value)
-                    }
-                    placeholder="e.g. M"
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                  />
-                  <input
-                    value={variant.color}
-                    onChange={(event) =>
-                      updateVariantField(index, "color", event.target.value)
-                    }
-                    placeholder="e.g. Black"
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    value={variant.stock}
-                    onChange={(event) =>
-                      updateVariantField(index, "stock", event.target.value)
-                    }
-                    placeholder="0"
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeVariant(index)}
-                    className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-400"
-                  >
-                    Remove
-                  </button>
+                  <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+                    <label className="space-y-1.5 text-sm font-medium text-slate-700">
+                      <span>Color</span>
+                      <input
+                        value={group.color}
+                        onChange={(event) =>
+                          updateColorGroup(colorIndex, event.target.value)
+                        }
+                        placeholder="Black"
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => addSizeToColor(colorIndex)}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      Add Size
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeColorGroup(colorIndex)}
+                      className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-400"
+                    >
+                      Delete Color
+                    </button>
+                  </div>
+
+                  {group.sizes.length > 0 ? (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-[1fr_96px_auto] gap-2 px-1">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          Size
+                        </p>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          Stock
+                        </p>
+                        <span />
+                      </div>
+
+                      {group.sizes.map((variant, sizeIndex) => (
+                        <div
+                          key={sizeIndex}
+                          className="grid grid-cols-[1fr_96px_auto] items-center gap-2"
+                        >
+                          <input
+                            value={variant.size}
+                            onChange={(event) =>
+                              updateVariantSizeField(
+                                colorIndex,
+                                sizeIndex,
+                                "size",
+                                event.target.value
+                              )
+                            }
+                            placeholder="M"
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            value={variant.stock}
+                            onChange={(event) =>
+                              updateVariantSizeField(
+                                colorIndex,
+                                sizeIndex,
+                                "stock",
+                                event.target.value
+                              )
+                            }
+                            placeholder="0"
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeSizeFromColor(colorIndex, sizeIndex)}
+                            className="rounded-lg border border-red-100 bg-white px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-400"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-5 text-center text-sm text-slate-400">
+                      No sizes added for this color
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -837,7 +978,7 @@ const Products = () => {
     }));
   };
 
-  const handleVariantsChange = (variants: ProductVariantFormItem[]) => {
+  const handleVariantsChange = (variants: ProductVariantColorGroup[]) => {
     setFormState((current) => ({
       ...current,
       variants,

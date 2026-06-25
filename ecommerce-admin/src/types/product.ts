@@ -33,5 +33,7 @@ export interface ProductInput {
   images: string[];
   description: string;
   features: string[];
-  variants: ProductVariant[];
+  sizes: string[];
+  colors: string[];
+  variants?: ProductVariant[];
 }
