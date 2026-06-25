@@ -8,72 +8,67 @@ import asyncHandler from "../utils/asyncHandler";
 const cartProductPopulate = {
   path: "items.product",
   select:
-    "_id name category price actualPrice sellingPrice discountPercentage image images description sizes colors features variants",
+    "_id name category price actualPrice sellingPrice discountPercentage image images description features variants",
 };
 
-const normalizeVariant = (value?: unknown) =>
-  typeof value === "string" && value.trim() ? value.trim() : undefined;
+const normalizeVariantField = (value?: unknown): string =>
+  typeof value === "string" && value.trim() ? value.trim() : "";
 
 const normalizeParam = (value: unknown) =>
   Array.isArray(value) ? value[0] : String(value || "");
 
 const isSameCartItem = (
-  item: { product: mongoose.Types.ObjectId; size?: string; color?: string },
+  item: { product: mongoose.Types.ObjectId; size: string; color: string },
   productId: string,
-  size?: string,
-  color?: string
+  size: string,
+  color: string
 ) =>
   item.product.toString() === productId &&
-  (item.size || undefined) === size &&
-  (item.color || undefined) === color;
-
+  item.size === size &&
+  item.color === color;
 
 const findVariant = (
   variants: IProductVariant[],
-  size: string | undefined,
-  color: string | undefined
+  color: string,
+  size: string
 ): IProductVariant | undefined =>
   variants.find(
-    (v) =>
-      v.size === (size ?? "") &&
-      v.color === (color ?? "")
+    (v) => v.color === color && v.size === size
   );
 
 const checkVariantStock = (
   product: { name: string; variants: IProductVariant[] },
-  size: string | undefined,
-  color: string | undefined,
+  color: string,
+  size: string,
   requestedTotal: number
 ): { status: number; message: string } | null => {
-  if (!product.variants || product.variants.length === 0) {
-    // No variant inventory configured — allow purchase (backward compatible)
-    return null;
-  }
-
-  const variant = findVariant(product.variants, size, color);
-
-  if (!variant) {
-    const sizeLabel = size ? ` size "${size}"` : "";
-    const colorLabel = color ? ` color "${color}"` : "";
+  if (product.variants.length === 0) {
     return {
       status: 400,
-      message: `The selected variant${sizeLabel}${colorLabel} is not available for "${product.name}"`,
+      message: `"${product.name}" has no available variants`,
+    };
+  }
+
+  const variant = findVariant(product.variants, color, size);
+
+  if (!variant) {
+    return {
+      status: 400,
+      message: `The variant color "${color}" size "${size}" is not available for "${product.name}"`,
     };
   }
 
   if (variant.stock === 0) {
-    const sizeLabel = size ? ` (${size}` : "";
-    const colorLabel = color ? `/${color})` : size ? ")" : "";
     return {
       status: 400,
-      message: `"${product.name}"${sizeLabel}${colorLabel} is out of stock`,
+      message: `"${product.name}" (${color}/${size}) is out of stock`,
     };
   }
 
   if (requestedTotal > variant.stock) {
     return {
       status: 400,
-      message: `Only ${variant.stock} unit${variant.stock === 1 ? "" : "s"} of "${product.name}" available for the selected variant`,
+      message: `Only ${variant.stock} unit${variant.stock === 1 ? "" : "s"} of "${product.name}" (${color}/${size}) available`,
     };
   }
 
@@ -84,8 +79,8 @@ export const addToCart = asyncHandler(
   async (req: Request, res: Response) => {
     const { productId, quantity } = req.body;
     const itemQuantity = quantity === undefined ? 1 : Number(quantity);
-    const size = normalizeVariant(req.body.size);
-    const color = normalizeVariant(req.body.color);
+    const color = normalizeVariantField(req.body.color);
+    const size = normalizeVariantField(req.body.size);
 
     if (!productId) {
       return res.status(400).json({
@@ -117,6 +112,13 @@ export const addToCart = asyncHandler(
       });
     }
 
+    if (product.variants.length > 0 && (!color || !size)) {
+      return res.status(400).json({
+        success: false,
+        message: "Color and size are required for this product",
+      });
+    }
+
     let cart = await Cart.findOne({
       user: req.user?._id,
     });
@@ -132,11 +134,10 @@ export const addToCart = asyncHandler(
       (item) => isSameCartItem(item, productId, size, color)
     );
 
-
     const currentCartQty = existingItem?.quantity ?? 0;
     const totalRequested = currentCartQty + itemQuantity;
 
-    const stockError = checkVariantStock(product, size, color, totalRequested);
+    const stockError = checkVariantStock(product, color, size, totalRequested);
 
     if (stockError) {
       return res.status(stockError.status).json({
@@ -151,8 +152,8 @@ export const addToCart = asyncHandler(
       cart.items.push({
         product: product._id,
         quantity: itemQuantity,
-        size,
         color,
+        size,
       });
     }
 
@@ -182,8 +183,8 @@ export const getCart = asyncHandler(
 export const removeFromCart = asyncHandler(
   async (req: Request, res: Response) => {
     const productId = normalizeParam(req.params.productId);
-    const size = normalizeVariant(req.query.size);
-    const color = normalizeVariant(req.query.color);
+    const color = normalizeVariantField(req.query.color);
+    const size = normalizeVariantField(req.query.size);
 
     if (!mongoose.isValidObjectId(productId)) {
       return res.status(400).json({
@@ -221,8 +222,8 @@ export const updateCartItem = asyncHandler(
   async (req: Request, res: Response) => {
     const productId = normalizeParam(req.params.productId);
     const quantity = Number(req.body.quantity);
-    const size = normalizeVariant(req.body.size);
-    const color = normalizeVariant(req.body.color);
+    const color = normalizeVariantField(req.body.color);
+    const size = normalizeVariantField(req.body.size);
 
     if (!mongoose.isValidObjectId(productId)) {
       return res.status(400).json({
@@ -260,12 +261,11 @@ export const updateCartItem = asyncHandler(
       });
     }
 
-    // Stock validation — only when increasing quantity (quantity > 0)
     if (quantity > 0) {
       const product = await Product.findById(productId).select("name variants");
 
       if (product) {
-        const stockError = checkVariantStock(product, size, color, quantity);
+        const stockError = checkVariantStock(product, color, size, quantity);
 
         if (stockError) {
           return res.status(stockError.status).json({

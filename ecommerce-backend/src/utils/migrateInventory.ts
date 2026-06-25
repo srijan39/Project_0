@@ -1,39 +1,54 @@
-
-
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import Product from "../models/product.model";
-import Inventory from "../models/inventory.model";
+import type { IProductVariant } from "../models/product.model";
 
 dotenv.config();
 
-const DEFAULT_STOCK = 0;
-const DEFAULT_LOW_STOCK_THRESHOLD = 5;
 const DRY_RUN = process.argv.includes("--dry-run");
 
 const customStockArg = process.argv.find((a) => a.startsWith("--default-stock="));
-const RESOLVED_DEFAULT_STOCK = customStockArg
+const DEFAULT_STOCK = customStockArg
   ? parseInt(customStockArg.split("=")[1], 10)
-  : DEFAULT_STOCK;
+  : 0;
 
-function generateVariantCombinations(
+interface LegacyProduct {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+  sizes?: string[];
+  colors?: string[];
+  variants: IProductVariant[];
+}
+
+function buildVariantsFromLegacy(
   sizes: string[],
-  colors: string[]
-): Array<{ size: string; color: string }> {
-  const resolvedSizes = sizes.length > 0 ? sizes : [""];
+  colors: string[],
+  existingVariants: IProductVariant[],
+  defaultStock: number
+): IProductVariant[] {
+  const existing = new Map<string, IProductVariant>();
+  for (const v of existingVariants) {
+    existing.set(`${v.color}|${v.size}`, v);
+  }
+
   const resolvedColors = colors.length > 0 ? colors : [""];
+  const resolvedSizes = sizes.length > 0 ? sizes : [""];
+  const result: IProductVariant[] = [];
 
-  const combinations: Array<{ size: string; color: string }> = [];
-
-  for (const size of resolvedSizes) {
-    for (const color of resolvedColors) {
-      combinations.push({ size, color });
+  for (const color of resolvedColors) {
+    for (const size of resolvedSizes) {
+      const key = `${color}|${size}`;
+      const existingVariant = existing.get(key);
+      result.push({
+        color,
+        size,
+        stock: existingVariant ? existingVariant.stock : defaultStock,
+      });
     }
   }
 
-  return combinations;
+  return result;
 }
-
 
 async function migrateInventory(): Promise<void> {
   const mongoUri = process.env.MONGO_URI;
@@ -42,121 +57,63 @@ async function migrateInventory(): Promise<void> {
     throw new Error("MONGO_URI is not defined in .env");
   }
 
-  console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("  Inventory Migration");
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-
-  if (DRY_RUN) {
-    console.log("  MODE: DRY RUN — no documents will be written");
-  } else {
-    console.log(`  MODE: LIVE — default stock per variant: ${RESOLVED_DEFAULT_STOCK}`);
-  }
-
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
-
   await mongoose.connect(mongoUri);
-  console.log("✓ Connected to MongoDB\n");
 
+  const products = await Product.collection
+    .find<LegacyProduct>({}, { projection: { _id: 1, name: 1, sizes: 1, colors: 1, variants: 1 } })
+    .toArray();
 
-  const products = await Product.find({}, { _id: 1, name: 1, sizes: 1, colors: 1 }).lean();
-
-  console.log(`Found ${products.length} products to process.\n`);
-
-  const inventoryDocs: Array<{
-    product: mongoose.Types.ObjectId;
-    size: string;
-    color: string;
-    stock: number;
-    reserved: number;
-    lowStockThreshold: number;
-    isActive: boolean;
-  }> = [];
-
-  let totalVariants = 0;
+  let migrated = 0;
+  let skipped = 0;
 
   for (const product of products) {
-    const combinations = generateVariantCombinations(
-      product.sizes ?? [],
-      product.colors ?? []
-    );
+    const legacySizes: string[] = product.sizes ?? [];
+    const legacyColors: string[] = product.colors ?? [];
+    const existingVariants: IProductVariant[] = product.variants ?? [];
 
-    const sizeLabel = product.sizes?.length
-      ? `sizes: [${product.sizes.join(", ")}]`
-      : "no sizes";
-    const colorLabel = product.colors?.length
-      ? `colors: [${product.colors.join(", ")}]`
-      : "no colors";
+    const hasLegacyFields = legacySizes.length > 0 || legacyColors.length > 0;
+    const hasVariants = existingVariants.length > 0;
 
-    console.log(
-      `  → ${product.name} (${sizeLabel}, ${colorLabel}) — ${combinations.length} variant(s)`
-    );
-
-    for (const { size, color } of combinations) {
-      const variantLabel = [size, color].filter(Boolean).join(" / ") || "no variant";
-      console.log(`      • ${variantLabel} — stock: ${RESOLVED_DEFAULT_STOCK}`);
-
-      inventoryDocs.push({
-        product: product._id as mongoose.Types.ObjectId,
-        size,
-        color,
-        stock: RESOLVED_DEFAULT_STOCK,
-        reserved: 0,
-        lowStockThreshold: DEFAULT_LOW_STOCK_THRESHOLD,
-        isActive: true,
-      });
+    if (!hasLegacyFields && hasVariants) {
+      skipped++;
+      continue;
     }
 
-    totalVariants += combinations.length;
-  }
-
-  console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-  console.log(`  Total variants to insert: ${totalVariants}`);
-  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
-
-  if (DRY_RUN) {
-    console.log("DRY RUN complete — no documents written.");
-    await mongoose.disconnect();
-    return;
-  }
-
-  if (inventoryDocs.length === 0) {
-    console.log("No products found. Nothing to migrate.");
-    await mongoose.disconnect();
-    return;
-  }
-
-  try {
-
-    const result = await Inventory.insertMany(inventoryDocs, {
-      ordered: false,
-    });
-
-    console.log(`✓ Inserted ${result.length} new inventory documents.`);
-  } catch (error: unknown) {
-
-    if (
-      error &&
-      typeof error === "object" &&
-      "name" in error &&
-      (error.name === "MongoBulkWriteError" || error.name === "BulkWriteError")
-    ) {
-      const bulkError = error as { result?: { nInserted?: number }; writeErrors?: unknown[] };
-      const inserted = bulkError.result?.nInserted ?? 0;
-      const skipped = (bulkError.writeErrors ?? []).length;
-
-      console.log(`✓ Inserted: ${inserted} new documents`);
-      console.log(`  Skipped: ${skipped} already-existing variants (duplicate key — safe)`);
-    } else {
-      throw error;
+    if (!hasLegacyFields && !hasVariants) {
+      skipped++;
+      continue;
     }
+
+    const newVariants = buildVariantsFromLegacy(
+      legacySizes,
+      legacyColors,
+      existingVariants,
+      DEFAULT_STOCK
+    );
+
+    if (!DRY_RUN) {
+      await Product.collection.updateOne(
+        { _id: product._id },
+        {
+          $set: { variants: newVariants },
+          $unset: { sizes: "", colors: "" },
+        }
+      );
+    }
+
+    migrated++;
   }
 
-  console.log("\n✓ Migration complete.\n");
+  if (!DRY_RUN) {
+    process.stdout.write(`Migrated: ${migrated}, Skipped: ${skipped}\n`);
+  } else {
+    process.stdout.write(`[DRY RUN] Would migrate: ${migrated}, Would skip: ${skipped}\n`);
+  }
+
   await mongoose.disconnect();
 }
 
-
 migrateInventory().catch((error) => {
-  console.error("\n✗ Migration failed:", error);
+  process.stderr.write(`Migration failed: ${String(error)}\n`);
   process.exit(1);
 });

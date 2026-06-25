@@ -3,14 +3,28 @@ import mongoose from "mongoose";
 import Order from "../models/order.model";
 import Cart from "../models/cart.model";
 import Product from "../models/product.model";
+import type { IProduct, IProductVariant } from "../models/product.model";
 import asyncHandler from "../utils/asyncHandler";
 import { pricingFromProduct } from "../utils/pricing";
 
+interface PopulatedCartItem {
+  product: IProduct;
+  quantity: number;
+  color: string;
+  size: string;
+}
+
+const findVariant = (
+  variants: IProductVariant[],
+  color: string,
+  size: string
+): IProductVariant | undefined =>
+  variants.find((v) => v.color === color && v.size === size);
 
 const decrementVariantStock = async (
   productId: mongoose.Types.ObjectId,
-  size: string | undefined,
-  color: string | undefined,
+  color: string,
+  size: string,
   qty: number,
   session: mongoose.ClientSession
 ) =>
@@ -19,8 +33,8 @@ const decrementVariantStock = async (
       _id: productId,
       variants: {
         $elemMatch: {
-          size: size ?? "",
-          color: color ?? "",
+          color,
+          size,
           stock: { $gte: qty },
         },
       },
@@ -29,11 +43,10 @@ const decrementVariantStock = async (
     { new: true, session }
   );
 
-
 const incrementVariantStock = async (
   productId: mongoose.Types.ObjectId | string,
-  size: string | undefined,
-  color: string | undefined,
+  color: string,
+  size: string,
   qty: number
 ) =>
   Product.findOneAndUpdate(
@@ -41,15 +54,14 @@ const incrementVariantStock = async (
       _id: productId,
       variants: {
         $elemMatch: {
-          size: size ?? "",
-          color: color ?? "",
+          color,
+          size,
         },
       },
     },
     { $inc: { "variants.$.stock": qty } },
     { new: true }
   );
-
 
 export const createOrder = asyncHandler(async (req: Request, res: Response) => {
   const { shippingAddress } = req.body;
@@ -68,26 +80,31 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
     throw new Error("Cart is empty");
   }
 
+  const populatedItems = cart.items as unknown as PopulatedCartItem[];
 
-  for (const item of cart.items as any[]) {
+  for (const item of populatedItems) {
     const product = item.product;
 
-    if (!product || !product.variants || product.variants.length === 0) {
-      continue;
+    if (!product) {
+      res.status(400);
+      throw new Error(
+        "A product in your cart is no longer available. Please update your cart."
+      );
     }
 
-    const variantSize = item.size ?? "";
-    const variantColor = item.color ?? "";
+    if (product.variants.length === 0) {
+      res.status(400);
+      throw new Error(
+        `"${product.name}" has no available variants. Please remove it from your cart.`
+      );
+    }
 
-    const variant = product.variants.find(
-      (v: { size: string; color: string; stock: number }) =>
-        v.size === variantSize && v.color === variantColor
-    );
+    const variant = findVariant(product.variants, item.color, item.size);
 
     if (!variant) {
       res.status(400);
       throw new Error(
-        `The variant you selected for "${product.name}"${item.size ? ` (Size: ${item.size})` : ""}${item.color ? ` (Color: ${item.color})` : ""} is no longer available. Please update your cart.`
+        `The variant you selected for "${product.name}" (Color: ${item.color}, Size: ${item.size}) is no longer available. Please update your cart.`
       );
     }
 
@@ -96,50 +113,39 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
       res.status(400);
       throw new Error(
         remaining === 0
-          ? `"${product.name}"${item.size ? ` (Size: ${item.size})` : ""}${item.color ? ` (Color: ${item.color})` : ""} is out of stock. Please remove it from your cart.`
-          : `Only ${remaining} unit${remaining === 1 ? "" : "s"} of "${product.name}"${item.size ? ` (Size: ${item.size})` : ""}${item.color ? ` (Color: ${item.color})` : ""} are available, but your cart has ${item.quantity}. Please update your cart.`
+          ? `"${product.name}" (${item.color}/${item.size}) is out of stock. Please remove it from your cart.`
+          : `Only ${remaining} unit${remaining === 1 ? "" : "s"} of "${product.name}" (${item.color}/${item.size}) available, but your cart has ${item.quantity}. Please update your cart.`
       );
     }
   }
-
 
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const items = cart.items as any[];
-
-    for (const item of items) {
-      const product = item.product;
-
-      if (!product.variants || product.variants.length === 0) {
-
-        continue;
-      }
-
+    for (const item of populatedItems) {
       const decremented = await decrementVariantStock(
-        product._id,
-        item.size,
+        item.product._id as mongoose.Types.ObjectId,
         item.color,
+        item.size,
         item.quantity,
         session
       );
 
       if (!decremented) {
-
         await session.abortTransaction();
         res.status(409);
         throw new Error(
-          `Stock for "${product.name}"${item.size ? ` (Size: ${item.size})` : ""}${item.color ? ` (Color: ${item.color})` : ""} changed while your order was being processed. Please refresh and try again.`
+          `Stock for "${item.product.name}" (${item.color}/${item.size}) changed while your order was being processed. Please refresh and try again.`
         );
       }
     }
 
-    const orderItems = items.map((item) => ({
-      product: item.product._id,
+    const orderItems = populatedItems.map((item) => ({
+      product: item.product._id as mongoose.Types.ObjectId,
       quantity: item.quantity,
-      size: item.size,
       color: item.color,
+      size: item.size,
       name: item.product.name,
       image: item.product.image,
       price: pricingFromProduct(item.product).sellingPrice,
@@ -176,8 +182,9 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
 
     res.status(201).json({ success: true, data: order });
   } catch (error) {
-
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     throw error;
   } finally {
     session.endSession();
@@ -289,12 +296,11 @@ export const cancelOrder = asyncHandler(async (req: Request, res: Response) => {
   order.status = "cancelled";
   await order.save();
 
-
   const restorePromises = order.items.map((item) =>
     incrementVariantStock(
       item.product as mongoose.Types.ObjectId,
-      item.size,
-      item.color,
+      item.color ?? "",
+      item.size ?? "",
       item.quantity
     ).catch(() => null)
   );
