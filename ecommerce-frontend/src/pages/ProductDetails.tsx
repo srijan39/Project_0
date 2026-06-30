@@ -67,25 +67,11 @@ const ProductDetails = () => {
   const isLowStock =
     availableStock !== null && availableStock > 0 && availableStock <= 10;
 
-  // --- Per-size stock helpers ---
-  // Returns the total stock across all colors for a given size,
-  // or null if variants are not defined (treat as in-stock).
-  const getStockForSize = (size: string): number | null => {
-    if (!product?.variants || product.variants.length === 0) return null;
-    const variantsForSize = product.variants.filter((v) => v.size === size);
-    if (variantsForSize.length === 0) return null;
-    return variantsForSize.reduce((sum, v) => sum + (v.stock ?? 0), 0);
-  };
-
-  // --- Per-color stock helpers (scoped to the currently selected size) ---
-  // Returns stock for a specific color + currently selected size combination.
   const getStockForColor = (color: string): number | null => {
     if (!product?.variants || product.variants.length === 0) return null;
-    const variant = product.variants.find(
-      (v) => v.size === selectedSize && v.color === color
-    );
-    if (!variant) return null;
-    return variant.stock ?? null;
+    const variantsForColor = product.variants.filter((v) => v.color === color);
+    if (variantsForColor.length === 0) return null;
+    return variantsForColor.reduce((sum, v) => sum + (v.stock ?? 0), 0);
   };
 
   useEffect(() => {
@@ -104,8 +90,8 @@ const ProductDetails = () => {
         if (isActive) {
           setProduct(data);
           setRelatedProducts([]);
-          setSelectedSize(data?.sizes[0] || "");
-          setSelectedColor(data?.colors?.[0] ?? "");
+          setSelectedSize("");
+          setSelectedColor("");
         }
       })
       .catch(() => {
@@ -418,79 +404,6 @@ const ProductDetails = () => {
 
             <p className="mt-6 leading-7 text-gray-600">{product.description}</p>
 
-            {/* ── Size Selector ── */}
-            <div className="mt-8">
-              <p className="mb-3 text-sm font-medium text-gray-900">
-                Select Size
-              </p>
-
-              <div className="flex flex-wrap gap-3">
-                {product.sizes.map((size) => {
-                  const sizeStock = getStockForSize(size);
-                  const isSizeOOS = sizeStock !== null && sizeStock === 0;
-                  const isSizeLow =
-                    sizeStock !== null && sizeStock > 0 && sizeStock <= 10;
-                  const isSelected = selectedSize === size;
-
-                  return (
-                    <div key={size} className="relative flex flex-col items-center gap-1">
-                      <button
-                        onClick={() => !isSizeOOS && setSelectedSize(size)}
-                        disabled={isSizeOOS}
-                        aria-label={
-                          isSizeOOS
-                            ? `Size ${size} – out of stock`
-                            : isSizeLow
-                            ? `Size ${size} – only ${sizeStock} left`
-                            : `Size ${size}`
-                        }
-                        className={[
-                          "relative rounded-md border px-4 py-2 text-sm transition",
-                          isSelected
-                            ? "border-black bg-black text-white"
-                            : isSizeOOS
-                            ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-300"
-                            : "border-gray-300 text-gray-800 hover:border-black",
-                        ].join(" ")}
-                      >
-                        {/* Diagonal strikethrough line for OOS */}
-                        {isSizeOOS && (
-                          <span
-                            aria-hidden="true"
-                            className="pointer-events-none absolute inset-0 overflow-hidden rounded-md"
-                          >
-                            <svg
-                              className="absolute inset-0 h-full w-full"
-                              viewBox="0 0 100 100"
-                              preserveAspectRatio="none"
-                            >
-                              <line
-                                x1="0"
-                                y1="100"
-                                x2="100"
-                                y2="0"
-                                stroke="#d1d5db"
-                                strokeWidth="1.5"
-                                vectorEffect="non-scaling-stroke"
-                              />
-                            </svg>
-                          </span>
-                        )}
-                        {size}
-                      </button>
-
-                      {/* Low stock count beneath the button */}
-                      {isSizeLow && !isSizeOOS && (
-                        <span className="text-[11px] font-medium text-amber-600">
-                          {sizeStock} left
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* ── Color Selector ── */}
             {product.colors.length > 0 && (
               <div className="mt-8">
@@ -511,7 +424,12 @@ const ProductDetails = () => {
                     return (
                       <div key={color} className="relative flex flex-col items-center gap-1">
                         <button
-                          onClick={() => !isColorOOS && setSelectedColor(color)}
+                          onClick={() => {
+                            if (!isColorOOS) {
+                              setSelectedColor(color);
+                              setSelectedSize("");
+                            }
+                          }}
                           disabled={isColorOOS}
                           aria-label={
                             isColorOOS
@@ -568,6 +486,88 @@ const ProductDetails = () => {
               </div>
             )}
 
+            {/* ── Size Selector ── */}
+            {product.sizes.length > 0 && (product.colors.length === 0 || selectedColor) && (
+              <div className="mt-8">
+                <p className="mb-3 text-sm font-medium text-gray-900">
+                  Select Size
+                </p>
+
+                <div className="flex flex-wrap gap-3">
+                  {product.sizes
+                    .filter((size) => {
+                      if (!product.variants || product.variants.length === 0) return true;
+                      if (product.colors.length === 0) return true;
+                      return product.variants.some(v => v.color === selectedColor && v.size === size);
+                    })
+                    .map((size) => {
+                      const sizeVariant = product.variants?.find(v => v.size === size && (product.colors.length === 0 || v.color === selectedColor));
+                      const sizeStock = sizeVariant ? sizeVariant.stock : null;
+                      const isSizeOOS = sizeStock !== null && sizeStock === 0;
+                      const isSizeLow =
+                        sizeStock !== null && sizeStock > 0 && sizeStock <= 10;
+                      const isSelected = selectedSize === size;
+
+                      return (
+                        <div key={size} className="relative flex flex-col items-center gap-1">
+                          <button
+                            onClick={() => !isSizeOOS && setSelectedSize(size)}
+                            disabled={isSizeOOS}
+                            aria-label={
+                              isSizeOOS
+                                ? `Size ${size} – out of stock`
+                                : isSizeLow
+                                ? `Size ${size} – only ${sizeStock} left`
+                                : `Size ${size}`
+                            }
+                            className={[
+                              "relative rounded-md border px-4 py-2 text-sm transition",
+                              isSelected
+                                ? "border-black bg-black text-white"
+                                : isSizeOOS
+                                ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-300"
+                                : "border-gray-300 text-gray-800 hover:border-black",
+                            ].join(" ")}
+                          >
+                            {/* Diagonal strikethrough line for OOS */}
+                            {isSizeOOS && (
+                              <span
+                                aria-hidden="true"
+                                className="pointer-events-none absolute inset-0 overflow-hidden rounded-md"
+                              >
+                                <svg
+                                  className="absolute inset-0 h-full w-full"
+                                  viewBox="0 0 100 100"
+                                  preserveAspectRatio="none"
+                                >
+                                  <line
+                                    x1="0"
+                                    y1="100"
+                                    x2="100"
+                                    y2="0"
+                                    stroke="#d1d5db"
+                                    strokeWidth="1.5"
+                                    vectorEffect="non-scaling-stroke"
+                                  />
+                                </svg>
+                            </span>
+                          )}
+                            {size}
+                          </button>
+
+                          {/* Low stock count beneath the button */}
+                          {isSizeLow && !isSizeOOS && (
+                            <span className="text-[11px] font-medium text-amber-600">
+                              {sizeStock} left
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
             {/* ── Stock status for the active combination ── */}
             {isOutOfStock && (
               <p className="mt-5 text-sm font-medium text-red-600">
@@ -620,7 +620,7 @@ const ProductDetails = () => {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <button
                 onClick={handleAddToCart}
-                disabled={isOutOfStock}
+                disabled={isOutOfStock || (product.colors.length > 0 && !selectedColor) || (product.sizes.length > 0 && !selectedSize)}
                 className="relative overflow-hidden flex flex-1 items-center justify-center gap-2 rounded-md bg-black px-6 py-3 text-sm text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <ShoppingCart size={18} />
@@ -639,7 +639,10 @@ const ProductDetails = () => {
                 {wishlisted ? "Wishlisted" : "Add to Wishlist"}
               </button>
 
-              <button className="flex-1 rounded-md border border-black px-6 py-3 text-sm text-black transition hover:bg-black hover:text-white">
+              <button
+                disabled={isOutOfStock || (product.colors.length > 0 && !selectedColor) || (product.sizes.length > 0 && !selectedSize)}
+                className="flex-1 rounded-md border border-black px-6 py-3 text-sm text-black transition hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
                 Buy Now
               </button>
             </div>
