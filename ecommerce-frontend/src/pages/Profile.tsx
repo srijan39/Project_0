@@ -336,16 +336,20 @@ export default function Profile() {
                 <ActionButton icon={User} disabled>
                   Edit Profile
                 </ActionButton>
-                <ActionButton icon={MapPin} disabled>
+                <Link
+                  to="/addresses"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-900 transition hover:border-gray-400 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
+                >
+                  <MapPin className="h-4 w-4" aria-hidden="true" />
                   Manage Addresses
-                </ActionButton>
+                </Link>
               </div>
             </section>
 
             <section aria-label="Account navigation" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <NavigationCard label="Profile" icon={User} to="/profile" />
               <NavigationCard label="Orders" icon={Package} to="/orders" />
-              <NavigationCard label="Addresses" icon={MapPin} disabled />
+              <NavigationCard label="Addresses" icon={MapPin} to="/addresses" />
               <NavigationCard label="Wishlist" icon={Heart}  to="/wishlist" />
               <NavigationCard label="Security" icon={Lock} disabled />
               <NavigationCard label="Logout" icon={LogOut} onClick={handleLogout} />
