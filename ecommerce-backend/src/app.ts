@@ -11,6 +11,7 @@ import adminRoutes from "./routes/admin.routes";
 import orderRoutes from "./routes/order.routes";
 import uploadRoutes from "./routes/upload.routes";
 import wishlistRoutes from "./routes/wishlist.routes";
+import addressRoutes from "./routes/address.routes";
 const app = express();
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
@@ -19,7 +20,7 @@ const allowedOrigins = process.env.CORS_ORIGIN
 app.use(
   cors({
     origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -37,6 +38,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/addresses", addressRoutes);
 app.use("/api/admin", adminRoutes);
 app.use(notFound);
 app.use(errorHandler);
