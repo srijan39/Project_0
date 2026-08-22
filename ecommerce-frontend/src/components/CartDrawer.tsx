@@ -1,6 +1,14 @@
+import { useState } from "react";
 import { X } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
+import { useAuth } from "../hooks/useAuth";
+import CheckoutAddressDialog from "./checkout/CheckoutAddressDialog";
 import OptimizedImage from "./OptimizedImage";
+import type { Address } from "../types/address";
+import type { CheckoutSessionItem } from "../types/checkout";
+import { saveCheckoutSession } from "../utils/checkoutSession";
+import { validateCheckoutItems } from "../utils/checkoutValidation";
 
 interface Props {
   isOpen: boolean;
@@ -9,11 +17,61 @@ interface Props {
 
 const CartDrawer = ({ isOpen, onClose }: Props) => {
   const { cart, removeFromCart } = useCart();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [checkoutError, setCheckoutError] = useState("");
+  const [isPreparingCheckout, setIsPreparingCheckout] = useState(false);
+  const [checkoutItems, setCheckoutItems] = useState<CheckoutSessionItem[]>([]);
+  const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
 
   const subtotal = cart.reduce(
     (total, item) => total + item.price * item.quantity,
     0
   );
+
+  const handleCheckout = async () => {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: location } });
+      return;
+    }
+
+    const items = cart.map((item) => ({
+      productId: item.id,
+      quantity: item.quantity,
+      size: item.size,
+      color: item.color,
+    }));
+
+    setIsPreparingCheckout(true);
+    setCheckoutError("");
+
+    try {
+      await validateCheckoutItems(items);
+      setCheckoutItems(items);
+      setIsAddressDialogOpen(true);
+    } catch (error) {
+      setCheckoutError(
+        error instanceof Error
+          ? error.message
+          : "We could not prepare checkout. Please review your cart."
+      );
+    } finally {
+      setIsPreparingCheckout(false);
+    }
+  };
+
+  const handleAddressContinue = (address: Address) => {
+    saveCheckoutSession({
+      source: "cart",
+      items: checkoutItems,
+      addressId: address._id,
+      createdAt: Date.now(),
+    });
+    setIsAddressDialogOpen(false);
+    onClose();
+    navigate("/checkout");
+  };
 
   return (
     <>
@@ -81,12 +139,30 @@ const CartDrawer = ({ isOpen, onClose }: Props) => {
               <span>₹{subtotal}</span>
             </div>
 
-            <button className="w-full bg-black text-white py-3 text-sm uppercase tracking-wide hover:bg-gray-800 transition">
-              Checkout
+            {checkoutError && (
+              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {checkoutError}
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={handleCheckout}
+              disabled={isPreparingCheckout}
+              className="w-full bg-black text-white py-3 text-sm uppercase tracking-wide hover:bg-gray-800 transition disabled:cursor-not-allowed disabled:bg-gray-400"
+            >
+              {isPreparingCheckout ? "Checking..." : "Checkout"}
             </button>
           </div>
         )}
       </div>
+
+      {isAddressDialogOpen && (
+        <CheckoutAddressDialog
+          onClose={() => setIsAddressDialogOpen(false)}
+          onContinue={handleAddressContinue}
+        />
+      )}
     </>
   );
 };
