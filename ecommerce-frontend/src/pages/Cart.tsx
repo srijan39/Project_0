@@ -1,9 +1,23 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
+import { useAuth } from "../hooks/useAuth";
+import CheckoutAddressDialog from "../components/checkout/CheckoutAddressDialog";
 import OptimizedImage from "../components/OptimizedImage";
+import type { Address } from "../types/address";
+import type { CheckoutSessionItem } from "../types/checkout";
+import { saveCheckoutSession } from "../utils/checkoutSession";
+import { validateCheckoutItems } from "../utils/checkoutValidation";
 
 const Cart = () => {
   const { cart, stockWarnings, increaseQty, decreaseQty, removeFromCart } = useCart();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [checkoutError, setCheckoutError] = useState("");
+  const [isPreparingCheckout, setIsPreparingCheckout] = useState(false);
+  const [checkoutItems, setCheckoutItems] = useState<CheckoutSessionItem[]>([]);
+  const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
 
   const itemKey = (id: string, size?: string, color?: string) =>
     `${id}|${size ?? ""}|${color ?? ""}`;
@@ -20,6 +34,53 @@ const Cart = () => {
     (acc, item) => acc + item.price * item.quantity,
     0
   );
+
+  const handleCheckout = async () => {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: location } });
+      return;
+    }
+
+    const items = cart.map((item) => ({
+      productId: item.id,
+      quantity: item.quantity,
+      size: item.size,
+      color: item.color,
+    }));
+
+    if (items.length === 0) {
+      setCheckoutError("Your cart is empty.");
+      return;
+    }
+
+    setIsPreparingCheckout(true);
+    setCheckoutError("");
+
+    try {
+      await validateCheckoutItems(items);
+      setCheckoutItems(items);
+      setIsAddressDialogOpen(true);
+    } catch (error) {
+      setCheckoutError(
+        error instanceof Error
+          ? error.message
+          : "We could not prepare checkout. Please review your cart."
+      );
+    } finally {
+      setIsPreparingCheckout(false);
+    }
+  };
+
+  const handleAddressContinue = (address: Address) => {
+    saveCheckoutSession({
+      source: "cart",
+      items: checkoutItems,
+      addressId: address._id,
+      createdAt: Date.now(),
+    });
+    setIsAddressDialogOpen(false);
+    navigate("/checkout");
+  };
 
   if (cart.length === 0) {
     return (
@@ -201,11 +262,29 @@ const Cart = () => {
             <span>₹{subtotal}</span>
           </div>
 
-          <button className="mt-6 w-full rounded-md bg-black py-3 text-white transition hover:bg-gray-800">
-            Proceed to Checkout
+          {checkoutError && (
+            <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {checkoutError}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={handleCheckout}
+            disabled={isPreparingCheckout}
+            className="mt-6 w-full rounded-md bg-black py-3 text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
+          >
+            {isPreparingCheckout ? "Checking Availability..." : "Proceed to Checkout"}
           </button>
         </div>
       </div>
+
+      {isAddressDialogOpen && (
+        <CheckoutAddressDialog
+          onClose={() => setIsAddressDialogOpen(false)}
+          onContinue={handleAddressContinue}
+        />
+      )}
     </div>
   );
 };
