@@ -6,6 +6,11 @@ import {
   type CSSProperties,
   type ImgHTMLAttributes,
 } from "react";
+import {
+  buildOptimizedImageUrl,
+  buildOptimizedSrcSet,
+  isPreloadableImage,
+} from "../utils/images";
 
 type ImageFit = "cover" | "contain";
 
@@ -28,39 +33,9 @@ interface OptimizedImageProps
 
 const loadedImages = new Set<string>();
 const preloadedImages = new Set<string>();
-const responsiveWidths = [240, 320, 480, 640, 768, 960, 1200, 1600];
 
 const fallbackImage =
   "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%23f8fafc'/%3E%3Cstop offset='1' stop-color='%23e2e8f0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='800' height='600' fill='url(%23g)'/%3E%3Cpath d='M230 380h340l-88-112-68 78-54-62-130 96Z' fill='%23cbd5e1'/%3E%3Ccircle cx='315' cy='228' r='38' fill='%23cbd5e1'/%3E%3Ctext x='400' y='472' text-anchor='middle' font-family='Arial,sans-serif' font-size='32' fill='%2364758b'%3EProduct image unavailable%3C/text%3E%3C/svg%3E";
-
-const isRemoteHttpImage = (src: string) => /^https?:\/\//i.test(src);
-const isPreloadableImage = (src: string) => !src.startsWith("data:");
-const isUnsplashImage = (src: string) =>
-  /^https?:\/\/images\.unsplash\.com\//i.test(src);
-
-const buildImageUrl = (src: string, width: number, format?: "avif" | "webp") => {
-  if (!isUnsplashImage(src)) return src;
-
-  const url = new URL(src);
-  url.searchParams.set("auto", "format");
-  url.searchParams.set("fit", "crop");
-  url.searchParams.set("q", "88");
-  url.searchParams.set("w", String(width));
-
-  if (format) {
-    url.searchParams.set("fm", format);
-  }
-
-  return url.toString();
-};
-
-const buildSrcSet = (src: string, format?: "avif" | "webp") => {
-  if (!isRemoteHttpImage(src)) return undefined;
-
-  return responsiveWidths
-    .map((width) => `${buildImageUrl(src, width, format)} ${width}w`)
-    .join(", ");
-};
 
 const OptimizedImage = memo(
   ({
@@ -79,19 +54,32 @@ const OptimizedImage = memo(
     onError,
     ...imageProps
   }: OptimizedImageProps) => {
-    const [currentSrc, setCurrentSrc] = useState(src);
-    const [isLoaded, setIsLoaded] = useState(() => loadedImages.has(src));
+    const requestedSrc = src || fallbackSrc;
+    const [failedSrc, setFailedSrc] = useState<string | null>(null);
+    const [loadedSrc, setLoadedSrc] = useState<string | null>(() =>
+      loadedImages.has(requestedSrc) ? requestedSrc : null
+    );
+    const currentSrc =
+      failedSrc === requestedSrc && requestedSrc !== fallbackSrc
+        ? fallbackSrc
+        : requestedSrc;
+    const isLoaded =
+      loadedImages.has(currentSrc) || loadedSrc === currentSrc;
 
-    useEffect(() => {
-      setCurrentSrc(src);
-      setIsLoaded(loadedImages.has(src));
-    }, [src]);
-
-    const avifSrcSet = useMemo(() => buildSrcSet(currentSrc, "avif"), [currentSrc]);
-    const webpSrcSet = useMemo(() => buildSrcSet(currentSrc, "webp"), [currentSrc]);
-    const fallbackSrcSet = useMemo(() => buildSrcSet(currentSrc), [currentSrc]);
+    const avifSrcSet = useMemo(
+      () => buildOptimizedSrcSet(currentSrc, width, "avif"),
+      [currentSrc, width]
+    );
+    const webpSrcSet = useMemo(
+      () => buildOptimizedSrcSet(currentSrc, width, "webp"),
+      [currentSrc, width]
+    );
+    const fallbackSrcSet = useMemo(
+      () => buildOptimizedSrcSet(currentSrc, width),
+      [currentSrc, width]
+    );
     const fallbackSizedSrc = useMemo(
-      () => buildImageUrl(currentSrc, Math.min(1200, Math.max(width, 240))),
+      () => buildOptimizedImageUrl(currentSrc, Math.min(1600, Math.max(width, 240))),
       [currentSrc, width]
     );
 
@@ -124,15 +112,14 @@ const OptimizedImage = memo(
 
     const handleLoad: ImgHTMLAttributes<HTMLImageElement>["onLoad"] = (event) => {
       loadedImages.add(currentSrc);
-      setIsLoaded(true);
+      setLoadedSrc(currentSrc);
       onLoad?.(event);
     };
 
     const handleError: ImgHTMLAttributes<HTMLImageElement>["onError"] = (event) => {
       if (currentSrc !== fallbackSrc) {
-        setCurrentSrc(fallbackSrc);
+        setFailedSrc(requestedSrc);
       }
-      setIsLoaded(true);
       onError?.(event);
     };
 
