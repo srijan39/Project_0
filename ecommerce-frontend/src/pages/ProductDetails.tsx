@@ -14,8 +14,13 @@ import { useCart } from "../hooks/useCart";
 import { useAuth } from "../hooks/useAuth";
 import ProductCard from "../components/ProductCard";
 import OptimizedImage from "../components/OptimizedImage";
+import CheckoutAddressDialog from "../components/checkout/CheckoutAddressDialog";
 import type { Product } from "../types/product";
+import type { Address } from "../types/address";
+import type { CheckoutSessionItem } from "../types/checkout";
 import { normalizeProductPricing } from "../utils/pricing";
+import { saveCheckoutSession } from "../utils/checkoutSession";
+import { validateCheckoutItems } from "../utils/checkoutValidation";
 import { useWishlist } from "../hooks/useWishlist";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
@@ -51,6 +56,10 @@ const ProductDetails = () => {
   const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 });
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
+  const [buyNowError, setBuyNowError] = useState("");
+  const [isPreparingBuyNow, setIsPreparingBuyNow] = useState(false);
+  const [buyNowItems, setBuyNowItems] = useState<CheckoutSessionItem[]>([]);
+  const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
 
   // Active variant stock (for the currently selected size + color combination)
   const activeVariant = useMemo(() => {
@@ -221,6 +230,72 @@ const ProductDetails = () => {
     } catch (error) {
       console.error(error);
     }
+  };
+
+  const handleBuyNow = async () => {
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: location } });
+      return;
+    }
+
+    if (product.colors.length > 0 && !selectedColor) {
+      setBuyNowError("Please select a color before checkout.");
+      return;
+    }
+
+    if (product.sizes.length > 0 && !selectedSize) {
+      setBuyNowError("Please select a size before checkout.");
+      return;
+    }
+
+    if (isOutOfStock) {
+      setBuyNowError("This variant is currently out of stock.");
+      return;
+    }
+
+    if (availableStock !== null && quantity > availableStock) {
+      setBuyNowError(
+        `Only ${availableStock} unit${availableStock === 1 ? "" : "s"} available.`
+      );
+      return;
+    }
+
+    const items = [
+      {
+        productId: product.id,
+        quantity,
+        size: selectedSize || undefined,
+        color: selectedColor || undefined,
+      },
+    ];
+
+    setIsPreparingBuyNow(true);
+    setBuyNowError("");
+
+    try {
+      await validateCheckoutItems(items);
+      setBuyNowItems(items);
+      setIsAddressDialogOpen(true);
+    } catch (error) {
+      setBuyNowError(
+        error instanceof Error
+          ? error.message
+          : "We could not prepare checkout for this product."
+      );
+    } finally {
+      setIsPreparingBuyNow(false);
+    }
+  };
+
+  const handleBuyNowAddressContinue = (address: Address) => {
+    saveCheckoutSession({
+      source: "buyNow",
+      items: buyNowItems,
+      addressId: address._id,
+      createdAt: Date.now(),
+    });
+    setIsAddressDialogOpen(false);
+    navigate("/checkout");
   };
 
   const handlePrevImage = () => {
@@ -640,12 +715,20 @@ const ProductDetails = () => {
               </button>
 
               <button
-                disabled={isOutOfStock || (product.colors.length > 0 && !selectedColor) || (product.sizes.length > 0 && !selectedSize)}
+                type="button"
+                onClick={handleBuyNow}
+                disabled={isPreparingBuyNow || isOutOfStock}
                 className="flex-1 rounded-md border border-black px-6 py-3 text-sm text-black transition hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Buy Now
+                {isPreparingBuyNow ? "Checking..." : "Buy Now"}
               </button>
             </div>
+
+            {buyNowError && (
+              <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {buyNowError}
+              </p>
+            )}
 
             {/* ── Product Highlights ── */}
             <div className="mt-10 border-t border-gray-200 pt-8">
@@ -691,6 +774,13 @@ const ProductDetails = () => {
           </div>
         )}
       </div>
+
+      {isAddressDialogOpen && (
+        <CheckoutAddressDialog
+          onClose={() => setIsAddressDialogOpen(false)}
+          onContinue={handleBuyNowAddressContinue}
+        />
+      )}
     </section>
   );
 };
