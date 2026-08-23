@@ -1,6 +1,10 @@
 import { body, validationResult } from "express-validator";
 import { Request, Response, NextFunction } from "express";
 import { resolveProductPricing } from "../utils/pricing";
+import {
+  isCollectionTagSlug,
+  slugifyCollectionTag,
+} from "../constants/collections";
 
 const handleValidationResult = (
   req: Request,
@@ -35,6 +39,48 @@ const validateStringArray = (field: string) => [
 const validateProductArrayFields = [
   ...validateStringArray("images"),
   ...validateStringArray("features"),
+];
+
+const validateCollectionTagsValue = (collectionTags: unknown) => {
+  if (!Array.isArray(collectionTags) || collectionTags.length === 0) return true;
+
+  const seen = new Set<string>();
+
+  for (const tag of collectionTags) {
+    if (typeof tag !== "string") {
+      throw new Error("collectionTags values must be strings");
+    }
+
+    const slug = slugifyCollectionTag(tag);
+
+    if (!isCollectionTagSlug(slug)) {
+      throw new Error(`Unsupported collection tag: ${tag}`);
+    }
+
+    if (seen.has(slug)) {
+      throw new Error(`Duplicate collection tag: ${tag}`);
+    }
+
+    seen.add(slug);
+  }
+
+  return true;
+};
+
+const validateCollectionTagsField = [
+  body("collectionTags")
+    .optional()
+    .isArray()
+    .withMessage("collectionTags must be an array")
+    .custom(validateCollectionTagsValue),
+];
+
+const validateBulkCollectionTagsField = [
+  body("*.collectionTags")
+    .optional()
+    .isArray()
+    .withMessage("collectionTags must be an array")
+    .custom(validateCollectionTagsValue),
 ];
 
 const validateVariantsField = [
@@ -216,6 +262,7 @@ export const validateProduct = [
     .withMessage("Description is required"),
 
   ...validateProductArrayFields,
+  ...validateCollectionTagsField,
   ...validateVariantsField,
 
   validateCreatePricing,
@@ -262,6 +309,7 @@ export const validateProductUpdate = [
     .withMessage("Description cannot be empty"),
 
   ...validateProductArrayFields,
+  ...validateCollectionTagsField,
   ...validateVariantsField,
 
   validateUpdatePricing,
@@ -320,6 +368,7 @@ export const validateProductsBulk = [
   ]),
 
   ...validateBulkVariantsField,
+  ...validateBulkCollectionTagsField,
 
   body().custom((value) => {
     if (Array.isArray(value)) {
