@@ -18,6 +18,7 @@ export interface Product {
   sizes: string[];
   colors: string[];
   features: string[];
+  collectionTags: string[];
   variants: ProductVariant[];
 }
 
@@ -36,4 +37,5 @@ export interface ProductInput {
   sizes: string[];
   colors: string[];
   variants?: ProductVariant[];
+  collectionTags: string[];
 }
