@@ -3,6 +3,11 @@ import Product from "../models/product.model";
 import type { IProductVariant } from "../models/product.model";
 import asyncHandler from "../utils/asyncHandler";
 import { resolveProductPricing } from "../utils/pricing";
+import {
+  COLLECTION_TAGS,
+  normalizeCollectionTags,
+  slugifyCollectionTag,
+} from "../constants/collections";
 
 type ProductPayload = Record<string, unknown>;
 
@@ -55,6 +60,11 @@ const parseStringList = (value: unknown) =>
   toQueryString(value)
     .split(",")
     .map((item) => item.trim())
+    .filter(Boolean);
+
+const parseCollectionList = (value: unknown) =>
+  parseStringList(value)
+    .map(slugifyCollectionTag)
     .filter(Boolean);
 
 const toCaseInsensitiveExactMatch = (value: string) =>
@@ -118,6 +128,7 @@ const getAvailableFilterOptions = async () => {
       options?.categories?.map((item: { _id: string }) => item._id) ?? [],
     colors: options?.colors?.map((item: { _id: string }) => item._id) ?? [],
     sizes: options?.sizes?.map((item: { _id: string }) => item._id) ?? [],
+    collections: COLLECTION_TAGS,
     priceRange: {
       min: options?.priceRange?.[0]?.min ?? null,
       max: options?.priceRange?.[0]?.max ?? null,
@@ -140,6 +151,12 @@ const normalizeProductPayload = (
 
   if (Array.isArray(payload.variants) || includeDefaults) {
     normalizedPayload.variants = normalizeVariants(payload.variants);
+  }
+
+  if (Array.isArray(payload.collectionTags) || includeDefaults) {
+    normalizedPayload.collectionTags = normalizeCollectionTags(
+      payload.collectionTags
+    );
   }
 
   delete normalizedPayload.sizes;
@@ -185,6 +202,9 @@ const serializeProduct = (product: unknown) => {
     price: pricing.price,
     images: Array.isArray(productObject.images) ? productObject.images : [],
     features: Array.isArray(productObject.features) ? productObject.features : [],
+    collectionTags: Array.isArray(productObject.collectionTags)
+      ? normalizeCollectionTags(productObject.collectionTags)
+      : [],
     variants,
     colors: deriveColorsFromVariants(variants),
     sizes: deriveSizesFromVariants(variants),
@@ -197,6 +217,8 @@ export const getProducts = asyncHandler(
     const limit = parsePositiveInt(req.query.limit, 10, 100);
     const search = toQueryString(req.query.search).trim();
     const category = toQueryString(req.query.category).trim().toLowerCase();
+    const collectionQuery = req.query.collection ?? req.query.collectionTag;
+    const collections = parseCollectionList(collectionQuery);
     const colors = parseStringList(req.query.color);
     const sizes = parseStringList(req.query.size);
     const minPrice = parseFloat(toQueryString(req.query.minPrice));
@@ -216,6 +238,12 @@ export const getProducts = asyncHandler(
 
     if (category) {
       filter.category = category;
+    }
+
+    if (collections.length > 0) {
+      filter.collectionTags = { $in: collections };
+    } else if (toQueryString(collectionQuery).trim()) {
+      filter.collectionTags = { $in: collections };
     }
 
     const variantFilter: Record<string, unknown> = {};
@@ -303,6 +331,7 @@ export const getProducts = asyncHandler(
       filters: {
         search,
         category,
+        collection: collections,
         color: colors,
         size: sizes,
         minPrice: isNaN(minPrice) ? null : minPrice,
