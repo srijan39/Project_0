@@ -18,6 +18,7 @@ export type ProductDiscountFilter =
 
 export interface ProductQuery {
   category?: ProductCategory;
+  collection?: string;
   color?: string[];
   size?: string[];
   minPrice?: number;
@@ -39,6 +40,10 @@ export interface ProductPagination {
 
 export interface ProductFilterOptions {
   categories: ProductCategory[];
+  collections: Array<{
+    label: string;
+    slug: string;
+  }>;
   colors: string[];
   sizes: string[];
   priceRange: {
@@ -79,6 +84,7 @@ export const mapProduct = (product: BackendProduct): Product => {
     sizes: product.sizes?.length ? product.sizes : deriveSizesFromVariants(variants),
     colors: product.colors?.length ? product.colors : deriveColorsFromVariants(variants),
     features: product.features || [],
+    collectionTags: product.collectionTags ?? [],
     variants,
   };
 };
@@ -90,6 +96,7 @@ export const getProductsPage = async (query: ProductQuery = {}) => {
 
   if (query.page) params.set("page", String(query.page));
   if (query.category) params.set("category", query.category);
+  if (query.collection) params.set("collection", query.collection);
   if (query.search?.trim()) params.set("search", query.search.trim());
   if (query.color?.length) params.set("color", query.color.join(","));
   if (query.size?.length) params.set("size", query.size.join(","));
@@ -114,6 +121,7 @@ export const getProductsPage = async (query: ProductQuery = {}) => {
     },
     availableFilters: response.availableFilters ?? {
       categories: ["men", "women", "kids"],
+      collections: [],
       colors: [],
       sizes: [],
       priceRange: {
