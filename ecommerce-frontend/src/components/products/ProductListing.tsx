@@ -9,6 +9,7 @@ import type {
   ProductSort,
 } from "../../api/products";
 import type { ProductCategory } from "../../types/product";
+import { getCollectionTagLabel } from "../../constants/collections";
 
 interface ProductListingProps {
   title: string;
@@ -109,6 +110,7 @@ const ProductListing = ({ title, fixedCategory }: ProductListingProps) => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const search = searchParams.get("search")?.trim() || "";
+  const collection = searchParams.get("collection")?.trim() || "";
   const categoryFromUrl = searchParams.get("category");
   const category =
     fixedCategory ?? (isCategory(categoryFromUrl) ? categoryFromUrl : undefined);
@@ -132,6 +134,7 @@ const ProductListing = ({ title, fixedCategory }: ProductListingProps) => {
     availableFilters,
   } = useProducts({
     category,
+    collection,
     color: selectedColors,
     size: selectedSizes,
     minPrice,
@@ -153,8 +156,14 @@ const ProductListing = ({ title, fixedCategory }: ProductListingProps) => {
     mergeSelectedOptions(availableFilters.sizes, selectedSizes)
   );
 
-  const heading =
-    !fixedCategory && search ? `Search Results for "${search}"` : title;
+  const collectionLabel = collection ? getCollectionTagLabel(collection) : "";
+  const heading = collectionLabel
+    ? category
+      ? `${categoryLabels[category]} ${collectionLabel}`
+      : collectionLabel
+    : !fixedCategory && search
+      ? `Search Results for "${search}"`
+      : title;
 
   const commitParams = (
     update: (next: URLSearchParams) => void,
@@ -317,6 +326,18 @@ const ProductListing = ({ title, fixedCategory }: ProductListingProps) => {
             remove: () =>
               commitParams((next) => {
                 next.delete("search");
+              }),
+          },
+        ]
+      : []),
+    ...(collection
+      ? [
+          {
+            key: "collection",
+            label: collectionLabel,
+            remove: () =>
+              commitParams((next) => {
+                next.delete("collection");
               }),
           },
         ]
