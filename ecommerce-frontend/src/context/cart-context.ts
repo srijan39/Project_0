@@ -20,6 +20,7 @@ export interface CartContextType {
   removeFromCart: (id: string, size?: string, color?: string) => void;
   increaseQty: (id: string, size?: string, color?: string) => void;
   decreaseQty: (id: string, size?: string, color?: string) => void;
+  clearCart: () => void;
 }
 
 export const CartContext = createContext<CartContextType | undefined>(undefined);

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Order from "../models/order.model";
 import Cart from "../models/cart.model";
+import Product from "../models/product.model";
 import type { IProduct } from "../models/product.model";
 import asyncHandler from "../utils/asyncHandler";
 import { pricingFromProduct } from "../utils/pricing";
@@ -10,6 +11,7 @@ import {
   findVariant,
   incrementVariantStock,
   InventoryError,
+  normalizeVariantField,
   validateVariantSelection,
 } from "../utils/inventory";
 
@@ -18,6 +20,13 @@ interface PopulatedCartItem {
   quantity: number;
   color: string;
   size: string;
+}
+
+interface OrderRequestItem {
+  productId?: unknown;
+  quantity?: unknown;
+  color?: unknown;
+  size?: unknown;
 }
 
 interface InventoryRequest {
@@ -33,6 +42,43 @@ const getDocumentId = (document: { _id: unknown }) =>
 
 const normalizeParam = (value: unknown) =>
   Array.isArray(value) ? value[0] : String(value || "");
+
+const normalizeOrderRequestItems = async (
+  items: unknown[]
+): Promise<PopulatedCartItem[]> => {
+  const populatedItems: PopulatedCartItem[] = [];
+
+  for (const item of items) {
+    const requestItem = item as OrderRequestItem;
+    const productId = normalizeParam(requestItem.productId);
+    const quantity = Number(requestItem.quantity);
+    const color = normalizeVariantField(requestItem.color);
+    const size = normalizeVariantField(requestItem.size);
+
+    if (!mongoose.isValidObjectId(productId)) {
+      throw new InventoryError("Invalid product in checkout", 400);
+    }
+
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      throw new InventoryError("Quantity must be a whole number greater than 0", 400);
+    }
+
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      throw new InventoryError("A product in checkout is no longer available", 404);
+    }
+
+    populatedItems.push({
+      product,
+      quantity,
+      color,
+      size,
+    });
+  }
+
+  return populatedItems;
+};
 
 const buildInventoryRequests = (
   items: PopulatedCartItem[]
@@ -166,23 +212,46 @@ const cancelOrderWithInventory = async (
 };
 
 export const createOrder = asyncHandler(async (req: Request, res: Response) => {
-  const { shippingAddress } = req.body;
+  const addressId = normalizeParam(req.body.addressId);
+  const requestItems = Array.isArray(req.body.items) ? req.body.items : null;
+  const isBuyNowOrder = requestItems !== null && requestItems.length > 0;
 
-  if (!shippingAddress) {
+  if (!addressId || !mongoose.isValidObjectId(addressId)) {
     res.status(400);
     throw new Error("Shipping address is required");
   }
 
-  const cart = await Cart.findOne({ user: req.user?._id }).populate(
-    "items.product"
-  );
+  const user = req.user;
+  const selectedAddress = user?.addresses.id(addressId);
 
-  if (!cart || cart.items.length === 0) {
+  if (!user || !selectedAddress) {
+    res.status(404);
+    throw new Error("Shipping address not found");
+  }
+
+  const shippingAddress = {
+    fullName: selectedAddress.fullName,
+    phone: selectedAddress.phone,
+    addressLine1: selectedAddress.addressLine1,
+    addressLine2: selectedAddress.addressLine2,
+    city: selectedAddress.city,
+    state: selectedAddress.state,
+    postalCode: selectedAddress.pincode,
+    country: selectedAddress.country,
+  };
+
+  const cart = isBuyNowOrder
+    ? null
+    : await Cart.findOne({ user: req.user?._id }).populate("items.product");
+
+  if (!isBuyNowOrder && (!cart || cart.items.length === 0)) {
     res.status(400);
     throw new Error("Cart is empty");
   }
 
-  const populatedItems = cart.items as unknown as PopulatedCartItem[];
+  const populatedItems = isBuyNowOrder
+    ? await normalizeOrderRequestItems(requestItems)
+    : (cart!.items as unknown as PopulatedCartItem[]);
 
   for (const item of populatedItems) {
     const product = item.product;
@@ -190,7 +259,7 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
     if (!product) {
       res.status(400);
       throw new Error(
-        "A product in your cart is no longer available. Please update your cart."
+        "A product in checkout is no longer available. Please update and try again."
       );
     }
 
@@ -200,7 +269,7 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
       if (error instanceof InventoryError) {
         res.status(error.statusCode);
         throw new Error(
-          `${error.message}. Please update your cart.`
+          `${error.message}. Please update and try again.`
         );
       }
 
@@ -219,7 +288,7 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
 
     if (!item) {
       res.status(400);
-      throw new Error("Cart contains an invalid variant selection");
+      throw new Error("Checkout contains an invalid variant selection");
     }
 
     const variant = findVariant(item.product.variants, request.color, request.size);
@@ -229,8 +298,8 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
       res.status(400);
       throw new Error(
         remaining === 0
-          ? `"${request.productName}" (${request.color}/${request.size}) is out of stock. Please remove it from your cart.`
-          : `Only ${remaining} unit${remaining === 1 ? "" : "s"} of "${request.productName}" (${request.color}/${request.size}) available, but your cart has ${request.quantity}. Please update your cart.`
+          ? `"${request.productName}" (${request.color}/${request.size}) is out of stock. Please update and try again.`
+          : `Only ${remaining} unit${remaining === 1 ? "" : "s"} of "${request.productName}" (${request.color}/${request.size}) available, but checkout has ${request.quantity}. Please update and try again.`
       );
     }
   }
@@ -295,18 +364,20 @@ export const createOrder = asyncHandler(async (req: Request, res: Response) => {
       { session }
     );
 
-    const clearCartResult = await Cart.updateOne(
-      { _id: cart._id, user: req.user?._id, __v: getCartVersion(cart) },
-      { $set: { items: [] }, $inc: { __v: 1 } },
-      { session }
-    );
-
-    if (clearCartResult.modifiedCount !== 1) {
-      await session.abortTransaction();
-      res.status(409);
-      throw new Error(
-        "Cart changed while your order was being processed. Please refresh and try again."
+    if (!isBuyNowOrder && cart) {
+      const clearCartResult = await Cart.updateOne(
+        { _id: cart._id, user: req.user?._id, __v: getCartVersion(cart) },
+        { $set: { items: [] }, $inc: { __v: 1 } },
+        { session }
       );
+
+      if (clearCartResult.modifiedCount !== 1) {
+        await session.abortTransaction();
+        res.status(409);
+        throw new Error(
+          "Cart changed while your order was being processed. Please refresh and try again."
+        );
+      }
     }
 
     await session.commitTransaction();

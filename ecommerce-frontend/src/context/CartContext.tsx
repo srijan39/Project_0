@@ -295,6 +295,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     syncCart(updateCartItem(id, nextQuantity, size, color));
   };
 
+  const clearCart = () => {
+    if (!isAuthenticated || !user) return;
+
+    setCartState({
+      userId: user._id,
+      items: [],
+    });
+    setStockWarnings({});
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -304,6 +314,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         removeFromCart,
         increaseQty,
         decreaseQty,
+        clearCart,
       }}
     >
       {children}

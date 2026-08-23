@@ -7,6 +7,14 @@ import { resolveProductPricing } from "../utils/pricing";
 type ProductPayload = Record<string, unknown>;
 
 const arrayFields = ["images", "features"] as const;
+const sortableFields = new Set([
+  "price_asc",
+  "price_desc",
+  "newest",
+  "oldest",
+  "discount_desc",
+]);
+const supportedDiscountFilters = new Set(["on_sale", "10", "20", "30", "50"]);
 
 const normalizeStringArray = (value: unknown) => {
   if (!Array.isArray(value)) return [];
@@ -36,6 +44,86 @@ const deriveColorsFromVariants = (variants: IProductVariant[]): string[] =>
 
 const deriveSizesFromVariants = (variants: IProductVariant[]): string[] =>
   [...new Set(variants.map((v) => v.size))];
+
+const toQueryString = (value: unknown) =>
+  Array.isArray(value) ? String(value[0] ?? "") : String(value ?? "");
+
+const escapeRegExp = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const parseStringList = (value: unknown) =>
+  toQueryString(value)
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const toCaseInsensitiveExactMatch = (value: string) =>
+  new RegExp(`^${escapeRegExp(value)}$`, "i");
+
+const parsePositiveInt = (value: unknown, fallback: number, max: number) => {
+  const parsed = parseInt(toQueryString(value), 10);
+
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+
+  return Math.min(parsed, max);
+};
+
+const parseBoolean = (value: unknown) =>
+  ["true", "1", "yes"].includes(toQueryString(value).trim().toLowerCase());
+
+const parseDiscountFilter = (value: unknown) => {
+  const discount = toQueryString(value).trim().toLowerCase();
+
+  return supportedDiscountFilters.has(discount) ? discount : "";
+};
+
+const getAvailableFilterOptions = async () => {
+  const effectivePriceExpression = { $ifNull: ["$sellingPrice", "$price"] };
+
+  const [options] = await Product.aggregate([
+    {
+      $facet: {
+        categories: [
+          { $group: { _id: "$category" } },
+          { $match: { _id: { $ne: null } } },
+          { $sort: { _id: 1 } },
+        ],
+        colors: [
+          { $unwind: "$variants" },
+          { $group: { _id: "$variants.color" } },
+          { $match: { _id: { $nin: [null, ""] } } },
+          { $sort: { _id: 1 } },
+        ],
+        sizes: [
+          { $unwind: "$variants" },
+          { $group: { _id: "$variants.size" } },
+          { $match: { _id: { $nin: [null, ""] } } },
+          { $sort: { _id: 1 } },
+        ],
+        priceRange: [
+          {
+            $group: {
+              _id: null,
+              min: { $min: effectivePriceExpression },
+              max: { $max: effectivePriceExpression },
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  return {
+    categories:
+      options?.categories?.map((item: { _id: string }) => item._id) ?? [],
+    colors: options?.colors?.map((item: { _id: string }) => item._id) ?? [],
+    sizes: options?.sizes?.map((item: { _id: string }) => item._id) ?? [],
+    priceRange: {
+      min: options?.priceRange?.[0]?.min ?? null,
+      max: options?.priceRange?.[0]?.max ?? null,
+    },
+  };
+};
 
 const normalizeProductPayload = (
   payload: ProductPayload,
@@ -105,13 +193,18 @@ const serializeProduct = (product: unknown) => {
 
 export const getProducts = asyncHandler(
   async (req: Request, res: Response) => {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const search = (req.query.search as string) || "";
-    const category = (req.query.category as string) || "";
-    const minPrice = parseFloat(req.query.minPrice as string);
-    const maxPrice = parseFloat(req.query.maxPrice as string);
-    const sort = (req.query.sort as string) || "";
+    const page = parsePositiveInt(req.query.page, 1, 10000);
+    const limit = parsePositiveInt(req.query.limit, 10, 100);
+    const search = toQueryString(req.query.search).trim();
+    const category = toQueryString(req.query.category).trim().toLowerCase();
+    const colors = parseStringList(req.query.color);
+    const sizes = parseStringList(req.query.size);
+    const minPrice = parseFloat(toQueryString(req.query.minPrice));
+    const maxPrice = parseFloat(toQueryString(req.query.maxPrice));
+    const inStock = parseBoolean(req.query.inStock);
+    const discount = parseDiscountFilter(req.query.discount);
+    const requestedSort = toQueryString(req.query.sort).trim().toLowerCase();
+    const sort = sortableFields.has(requestedSort) ? requestedSort : "";
 
     const skip = (page - 1) * limit;
 
@@ -123,6 +216,35 @@ export const getProducts = asyncHandler(
 
     if (category) {
       filter.category = category;
+    }
+
+    const variantFilter: Record<string, unknown> = {};
+
+    if (colors.length > 0) {
+      variantFilter.color = {
+        $in: colors.map(toCaseInsensitiveExactMatch),
+      };
+    }
+
+    if (sizes.length > 0) {
+      variantFilter.size = {
+        $in: sizes.map(toCaseInsensitiveExactMatch),
+      };
+    }
+
+    if (inStock) {
+      variantFilter.stock = { $gt: 0 };
+    }
+
+    if (Object.keys(variantFilter).length > 0) {
+      filter.variants = { $elemMatch: variantFilter };
+    }
+
+    if (discount) {
+      filter.discountPercentage =
+        discount === "on_sale"
+          ? { $gt: 0 }
+          : { $gte: Number(discount) };
     }
 
     const effectivePriceExpression = { $ifNull: ["$sellingPrice", "$price"] };
@@ -152,21 +274,25 @@ export const getProducts = asyncHandler(
       sortOption.createdAt = -1;
     } else if (sort === "oldest") {
       sortOption.createdAt = 1;
+    } else if (sort === "discount_desc") {
+      sortOption.discountPercentage = -1;
     }
 
-    const products = await Product.aggregate([
+    const productPipeline = [
       { $match: filter },
       { $addFields: { effectiveSellingPrice: effectivePriceExpression } },
       ...(Object.keys(sortOption).length > 0 ? [{ $sort: sortOption }] : []),
       { $skip: skip },
       { $limit: limit },
       { $project: { effectiveSellingPrice: 0 } },
-    ]);
+    ];
 
-    const [{ total = 0 } = {}] = await Product.aggregate([
-      { $match: filter },
-      { $count: "total" },
-    ]);
+    const [products, [{ total = 0 } = {}], availableFilters] =
+      await Promise.all([
+        Product.aggregate(productPipeline),
+        Product.aggregate([{ $match: filter }, { $count: "total" }]),
+        getAvailableFilterOptions(),
+      ]);
 
     res.status(200).json({
       success: true,
@@ -177,10 +303,15 @@ export const getProducts = asyncHandler(
       filters: {
         search,
         category,
+        color: colors,
+        size: sizes,
         minPrice: isNaN(minPrice) ? null : minPrice,
         maxPrice: isNaN(maxPrice) ? null : maxPrice,
+        inStock,
+        discount,
         sort,
       },
+      availableFilters,
       data: products.map(serializeProduct),
     });
   }

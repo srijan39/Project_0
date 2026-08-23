@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AlertCircle, ChevronRight, CreditCard, MapPin, Package } from "lucide-react";
 import { getAddresses } from "../api/address";
+import { createOrder } from "../api/order";
 import CheckoutAddressDialog from "../components/checkout/CheckoutAddressDialog";
 import OptimizedImage from "../components/OptimizedImage";
+import { useCart } from "../hooks/useCart";
 import type { Address } from "../types/address";
 import type { CheckoutSession, ValidatedCheckoutItem } from "../types/checkout";
 import {
@@ -46,10 +48,12 @@ const formatAddress = (address: Address) =>
 
 const Checkout = () => {
   const navigate = useNavigate();
+  const { clearCart } = useCart();
   const [session, setSession] = useState<CheckoutSession | null>(null);
   const [items, setItems] = useState<ValidatedCheckoutItem[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
 
@@ -134,6 +138,39 @@ const Checkout = () => {
   const handleStartOver = () => {
     clearCheckoutSession();
     navigate(session?.source === "buyNow" ? "/products" : "/cart");
+  };
+
+  const handlePlaceOrder = async () => {
+    if (!session || !selectedAddress || isPlacingOrder) return;
+
+    setIsPlacingOrder(true);
+    setErrorMessage("");
+
+    try {
+      await validateCheckoutItems(session.items);
+      const response = await createOrder({
+        addressId: selectedAddress._id,
+        items: session.source === "buyNow" ? session.items : undefined,
+      });
+
+      if (session.source === "cart") {
+        clearCart();
+      }
+
+      clearCheckoutSession();
+      navigate("/orders", {
+        state: { createdOrderId: response.data._id },
+        replace: true,
+      });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "We could not place your order. Please try again."
+      );
+    } finally {
+      setIsPlacingOrder(false);
+    }
   };
 
   if (isLoading) {
@@ -325,17 +362,17 @@ const Checkout = () => {
                   Payment gateway is currently unavailable.
                 </p>
                 <p className="mt-2 text-sm text-gray-500">
-                  Online payment integration will be added here. No order will be
-                  created and inventory will not be deducted until payment is
-                  available.
+                  Payment gateway integration will be added here. For now, you can
+                  place this order with payment status pending.
                 </p>
               </div>
               <button
                 type="button"
-                disabled
-                className="mt-5 w-full rounded-md bg-gray-400 py-3 text-sm font-medium text-white disabled:cursor-not-allowed"
+                disabled={isPlacingOrder}
+                onClick={handlePlaceOrder}
+                className="mt-5 w-full rounded-md bg-black py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
               >
-                Payment Coming Soon
+                {isPlacingOrder ? "Placing Order..." : "Place Order"}
               </button>
               <button
                 type="button"

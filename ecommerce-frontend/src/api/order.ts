@@ -1,4 +1,5 @@
 import { apiRequest } from "./client";
+import type { CheckoutSessionItem } from "../types/checkout";
 import type { Product } from "../types/product";
 
 export interface OrderItem {
@@ -56,6 +57,11 @@ interface OrderResponse {
   data: Order;
 }
 
+export interface CreateOrderPayload {
+  addressId: string;
+  items?: CheckoutSessionItem[];
+}
+
 export const getOrders = async () => {
   return apiRequest<OrdersResponse>("/orders/my-orders");
 };
@@ -64,9 +70,10 @@ export const getOrderById = async (id: string) => {
   return apiRequest<OrderResponse>(`/orders/${id}`);
 };
 
-export const createOrder = async () => {
+export const createOrder = async (payload: CreateOrderPayload) => {
   return apiRequest<OrderResponse>("/orders", {
     method: "POST",
+    body: JSON.stringify(payload),
   });
 };
 
