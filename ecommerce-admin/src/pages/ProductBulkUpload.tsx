@@ -152,6 +152,7 @@ const parseCsv = (content: string) => {
       sizes: splitPipeList(row.sizes),
       colors: splitPipeList(row.colors),
       features: splitPipeList(row.features),
+      collectionTags: splitPipeList(row.collectiontags),
     };
   });
 };
@@ -180,6 +181,7 @@ const parseJson = (content: string) => {
       sizes: asStringArray(item.sizes),
       colors: asStringArray(item.colors),
       features: asStringArray(item.features),
+      collectionTags: asStringArray(item.collectionTags),
     };
   });
 };
@@ -209,6 +211,7 @@ const validateProducts = (items: unknown[]) => {
     const sizes = asStringArray(item.sizes);
     const colors = asStringArray(item.colors);
     const features = asStringArray(item.features);
+    const collectionTags = asStringArray(item.collectionTags);
 
     if (!name) {
       failures.push({ row, message: "Name is required" });
@@ -270,6 +273,7 @@ const validateProducts = (items: unknown[]) => {
       sizes,
       colors,
       features,
+      collectionTags,
     });
   });
 
