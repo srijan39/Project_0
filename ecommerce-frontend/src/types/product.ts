@@ -20,6 +20,7 @@ export interface Product {
   sizes: string[];
   colors: string[];
   features: string[];
+  collectionTags: string[];
   variants: ProductVariant[];
 }
 
@@ -37,5 +38,6 @@ export interface BackendProduct {
   sizes?: string[];
   colors?: string[];
   features?: string[];
+  collectionTags?: string[];
   variants?: ProductVariant[];
 }
