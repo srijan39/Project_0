@@ -13,6 +13,7 @@ import type {
 
 interface UseProductsOptions {
   category?: ProductCategory;
+  collection?: string;
   color?: string[];
   size?: string[];
   minPrice?: number;
@@ -27,6 +28,7 @@ interface UseProductsOptions {
 
 export const useProducts = ({
   category,
+  collection,
   color,
   size,
   minPrice,
@@ -56,6 +58,7 @@ export const useProducts = ({
   const [availableFilters, setAvailableFilters] =
     useState<ProductFilterOptions>({
       categories: ["kids", "men", "women"],
+      collections: [],
       colors: [],
       sizes: [],
       priceRange: {
@@ -79,6 +82,7 @@ export const useProducts = ({
 
         return getProductsPage({
           category,
+          collection,
           color: colorKey ? colorKey.split(",") : undefined,
           size: sizeKey ? sizeKey.split(",") : undefined,
           minPrice,
@@ -125,6 +129,7 @@ export const useProducts = ({
     };
   }, [
     category,
+    collection,
     colorKey,
     sizeKey,
     minPrice,
