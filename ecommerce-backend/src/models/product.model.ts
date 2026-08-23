@@ -42,6 +42,7 @@ export interface IProduct extends Document {
   images: string[];
   description: string;
   features: string[];
+  collectionTags: string[];
   variants: IProductVariant[];
   readonly sizes: string[];
   readonly colors: string[];
@@ -106,6 +107,12 @@ const productSchema = new Schema<IProduct>(
     features: {
       type: [String],
       default: [],
+    },
+
+    collectionTags: {
+      type: [String],
+      default: [],
+      set: (values: unknown) => (Array.isArray(values) ? [...new Set(values)] : []),
     },
 
     variants: {
