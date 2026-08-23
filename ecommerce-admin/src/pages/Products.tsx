@@ -14,6 +14,7 @@ import {
   calculateDiscountPercentage,
   normalizeProductPricing,
 } from "../utils/pricing";
+import { COLLECTION_TAGS } from "../constants/collections";
 
 interface ProductListResponse {
   data?: Product[];
@@ -46,6 +47,7 @@ interface ProductFormState {
   images: string[];
   description: string;
   features: string;
+  collectionTags: string[];
   variants: ProductVariantColorGroup[];
 }
 
@@ -62,6 +64,7 @@ const emptyFormState: ProductFormState = {
   images: [],
   description: "",
   features: "",
+  collectionTags: [],
   variants: [],
 };
 
@@ -106,6 +109,7 @@ const serializeProduct = (formState: ProductFormState): ProductInput => {
     sizes: [...new Set(variants.map((variant) => variant.size).filter(Boolean))],
     colors: [...new Set(variants.map((variant) => variant.color).filter(Boolean))],
     features: parseList(formState.features),
+    collectionTags: formState.collectionTags,
     variants,
   };
 };
@@ -148,6 +152,7 @@ const productToFormState = (product: Product): ProductFormState => {
     images: product.images ?? [],
     description: product.description,
     features: product.features?.join(", ") ?? "",
+    collectionTags: product.collectionTags ?? [],
     variants: groupVariantsByColor(product.variants ?? []),
   };
 };
@@ -238,6 +243,7 @@ const normalizeProduct = (product: Product): Product => ({
   sizes: product.sizes ?? [],
   colors: product.colors ?? [],
   features: product.features ?? [],
+  collectionTags: product.collectionTags ?? [],
   variants: product.variants ?? [],
 });
 
@@ -349,6 +355,7 @@ interface ProductFormModalProps {
   uploadMessage: string;
   errorMessage: string;
   onChange: (field: keyof ProductFormState, value: string) => void;
+  onCollectionTagsChange: (collectionTags: string[]) => void;
   onVariantsChange: (variants: ProductVariantColorGroup[]) => void;
   onUploadMainImage: (file: File | undefined) => void;
   onUploadGalleryImages: (files: FileList | null) => void;
@@ -366,6 +373,7 @@ const ProductFormModal = ({
   uploadMessage,
   errorMessage,
   onChange,
+  onCollectionTagsChange,
   onVariantsChange,
   onUploadMainImage,
   onUploadGalleryImages,
@@ -439,6 +447,14 @@ const ProductFormModal = ({
             }
           : group
       )
+    );
+  };
+
+  const toggleCollectionTag = (tag: string) => {
+    onCollectionTagsChange(
+      formState.collectionTags.includes(tag)
+        ? formState.collectionTags.filter((item) => item !== tag)
+        : [...formState.collectionTags, tag]
     );
   };
 
@@ -705,6 +721,34 @@ const ProductFormModal = ({
             className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
           />
         </label>
+
+        <div className="space-y-3 rounded-lg border border-slate-200 p-3">
+          <div>
+            <p className="text-sm font-medium text-slate-700">
+              Collection Tags
+            </p>
+            <p className="mt-0.5 text-xs text-slate-400">
+              Used internally for collection grid filtering.
+            </p>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+            {COLLECTION_TAGS.map((tag) => (
+              <label
+                key={tag.slug}
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-blue-200 hover:bg-blue-50"
+              >
+                <input
+                  type="checkbox"
+                  checked={formState.collectionTags.includes(tag.slug)}
+                  onChange={() => toggleCollectionTag(tag.slug)}
+                  className="h-4 w-4 rounded border-slate-300 accent-blue-600"
+                />
+                <span>{tag.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
 
         <div className="space-y-3 rounded-lg border border-slate-200 p-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -985,6 +1029,13 @@ const Products = () => {
     }));
   };
 
+  const handleCollectionTagsChange = (collectionTags: string[]) => {
+    setFormState((current) => ({
+      ...current,
+      collectionTags,
+    }));
+  };
+
   const handleMainImageUpload = async (file: File | undefined) => {
     if (!file || isUploading) return;
 
@@ -1233,6 +1284,7 @@ const Products = () => {
           uploadMessage={uploadMessage}
           errorMessage={formErrorMessage}
           onChange={updateFormField}
+          onCollectionTagsChange={handleCollectionTagsChange}
           onVariantsChange={handleVariantsChange}
           onUploadMainImage={handleMainImageUpload}
           onUploadGalleryImages={handleGalleryImagesUpload}
