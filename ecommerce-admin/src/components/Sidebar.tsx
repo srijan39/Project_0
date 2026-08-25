@@ -4,6 +4,7 @@ const navItems = [
   { to: "/dashboard", label: "Dashboard", shortLabel: "D", end: true },
   { to: "/products", label: "Products", shortLabel: "P", end: true },
   { to: "/products/bulk", label: "Bulk Upload", shortLabel: "B", end: true },
+  { to: "/orders", label: "Orders", shortLabel: "O", end: true },
   { to: "/users", label: "Users", shortLabel: "U", end: true },
 ];
 
