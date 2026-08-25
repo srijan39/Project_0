@@ -10,6 +10,7 @@ import {
   buildOptimizedImageUrl,
   buildOptimizedSrcSet,
   isPreloadableImage,
+  preloadOptimizedImage,
 } from "../utils/images";
 
 type ImageFit = "cover" | "contain";
@@ -32,7 +33,6 @@ interface OptimizedImageProps
 }
 
 const loadedImages = new Set<string>();
-const preloadedImages = new Set<string>();
 
 const fallbackImage =
   "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%23f8fafc'/%3E%3Cstop offset='1' stop-color='%23e2e8f0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='800' height='600' fill='url(%23g)'/%3E%3Cpath d='M230 380h340l-88-112-68 78-54-62-130 96Z' fill='%23cbd5e1'/%3E%3Ccircle cx='315' cy='228' r='38' fill='%23cbd5e1'/%3E%3Ctext x='400' y='472' text-anchor='middle' font-family='Arial,sans-serif' font-size='32' fill='%2364758b'%3EProduct image unavailable%3C/text%3E%3C/svg%3E";
@@ -84,27 +84,10 @@ const OptimizedImage = memo(
     );
 
     useEffect(() => {
-      if (!priority || !isPreloadableImage(currentSrc) || preloadedImages.has(currentSrc)) {
-        return;
-      }
-
-      const link = document.createElement("link");
-      link.rel = "preload";
-      link.as = "image";
-      link.href = fallbackSizedSrc;
-
-      if (fallbackSrcSet) {
-        link.setAttribute("imagesrcset", fallbackSrcSet);
-        link.setAttribute("imagesizes", sizes);
-      }
-
-      document.head.appendChild(link);
-      preloadedImages.add(currentSrc);
-
-      return () => {
-        link.remove();
+      if (priority && isPreloadableImage(currentSrc)) {
+        preloadOptimizedImage(currentSrc, width, sizes);
       };
-    }, [currentSrc, fallbackSizedSrc, fallbackSrcSet, priority, sizes]);
+    }, [currentSrc, priority, sizes, width]);
 
     const wrapperStyle = {
       aspectRatio: `${width} / ${height}`,
