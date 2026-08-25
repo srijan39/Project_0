@@ -5,6 +5,7 @@ import {
   getMyOrders,
   getOrderById,
   getAllOrders,
+  getAdminOrderById,
   updateOrderStatus,
   cancelOrder,
 } from "../controllers/order.controller";
@@ -51,6 +52,14 @@ router.get(
   protect,
   admin,
   getAllOrders
+);
+
+// Get Single Order For Admin
+router.get(
+  "/admin/:id",
+  protect,
+  admin,
+  getAdminOrderById
 );
 
 // Update Order Status
