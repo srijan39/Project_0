@@ -1,6 +1,7 @@
 export type OptimizedImageFormat = "avif" | "webp";
 
 const responsiveWidths = [160, 240, 320, 480, 640, 768, 960, 1200, 1600];
+const preloadedImages = new Set<string>();
 
 export const isRemoteHttpImage = (src: string) => /^https?:\/\//i.test(src);
 
@@ -95,4 +96,34 @@ export const buildOptimizedSrcSet = (
   return getResponsiveWidths(targetWidth)
     .map((width) => `${buildOptimizedImageUrl(src, width, format)} ${width}w`)
     .join(", ");
+};
+
+export const preloadOptimizedImage = (
+  src: string,
+  width: number,
+  sizes: string
+) => {
+  if (
+    typeof document === "undefined" ||
+    !isPreloadableImage(src) ||
+    preloadedImages.has(src)
+  ) {
+    return;
+  }
+
+  const href = buildOptimizedImageUrl(src, Math.min(1600, Math.max(width, 240)));
+  const srcSet = buildOptimizedSrcSet(src, width);
+  const link = document.createElement("link");
+
+  link.rel = "preload";
+  link.as = "image";
+  link.href = href;
+
+  if (srcSet) {
+    link.setAttribute("imagesrcset", srcSet);
+    link.setAttribute("imagesizes", sizes);
+  }
+
+  document.head.appendChild(link);
+  preloadedImages.add(src);
 };
