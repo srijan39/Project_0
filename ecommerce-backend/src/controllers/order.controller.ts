@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Order from "../models/order.model";
 import Cart from "../models/cart.model";
 import Product from "../models/product.model";
+import User from "../models/user.model";
 import type { IProduct } from "../models/product.model";
 import asyncHandler from "../utils/asyncHandler";
 import { pricingFromProduct } from "../utils/pricing";
@@ -42,6 +43,33 @@ const getDocumentId = (document: { _id: unknown }) =>
 
 const normalizeParam = (value: unknown) =>
   Array.isArray(value) ? value[0] : String(value || "");
+
+const ORDER_STATUSES = [
+  "pending",
+  "processing",
+  "shipped",
+  "delivered",
+  "cancelled",
+] as const;
+
+type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+const isOrderStatus = (status: unknown): status is OrderStatus =>
+  ORDER_STATUSES.includes(status as OrderStatus);
+
+const parsePositiveInt = (value: unknown, fallback: number, max: number) => {
+  const parsed = parseInt(normalizeParam(value), 10);
+
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+
+  return Math.min(parsed, max);
+};
+
+const escapeRegExp = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const populateOrderForAdmin = (orderId: unknown) =>
+  Order.findById(orderId).populate("user", "name email");
 
 const normalizeOrderRequestItems = async (
   items: unknown[]
@@ -426,26 +454,86 @@ export const getOrderById = asyncHandler(
 
 export const getAllOrders = asyncHandler(
   async (req: Request, res: Response) => {
-    const orders = await Order.find()
-      .populate("user", "name email")
-      .sort({ createdAt: -1 });
+    const page = parsePositiveInt(req.query.page, 1, 10000);
+    const limit = parsePositiveInt(req.query.limit, 20, 100);
+    const status = normalizeParam(req.query.status).trim().toLowerCase();
+    const search = normalizeParam(req.query.search).trim();
+    const skip = (page - 1) * limit;
+    const filter: Record<string, unknown> = {};
 
-    res.status(200).json({ success: true, count: orders.length, data: orders });
+    if (isOrderStatus(status)) {
+      filter.status = status;
+    }
+
+    if (search) {
+      const searchRegex = new RegExp(escapeRegExp(search), "i");
+      const matchingUsers = await User.find({
+        $or: [{ name: searchRegex }, { email: searchRegex }],
+      }).select("_id");
+      const searchConditions: Record<string, unknown>[] = [
+        { "shippingAddress.fullName": searchRegex },
+        { "shippingAddress.phone": searchRegex },
+      ];
+
+      if (mongoose.isValidObjectId(search)) {
+        searchConditions.push({ _id: new mongoose.Types.ObjectId(search) });
+      }
+
+      if (matchingUsers.length > 0) {
+        searchConditions.push({
+          user: { $in: matchingUsers.map((user) => user._id) },
+        });
+      }
+
+      filter.$or = searchConditions;
+    }
+
+    const [orders, total] = await Promise.all([
+      Order.find(filter)
+        .populate("user", "name email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Order.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      totalOrders: total,
+      statuses: ORDER_STATUSES,
+      data: orders,
+    });
+  }
+);
+
+export const getAdminOrderById = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      res.status(400);
+      throw new Error("Invalid order ID");
+    }
+
+    const order = await Order.findById(req.params.id)
+      .populate("user", "name email")
+      .populate("items.product");
+
+    if (!order) {
+      res.status(404);
+      throw new Error("Order not found");
+    }
+
+    res.status(200).json({ success: true, data: order });
   }
 );
 
 export const updateOrderStatus = asyncHandler(
   async (req: Request, res: Response) => {
     const { status } = req.body;
-    const allowedStatuses = [
-      "pending",
-      "processing",
-      "shipped",
-      "delivered",
-      "cancelled",
-    ];
 
-    if (!allowedStatuses.includes(status)) {
+    if (!isOrderStatus(status)) {
       res.status(400);
       throw new Error("Invalid status");
     }
@@ -469,14 +557,20 @@ export const updateOrderStatus = asyncHandler(
         true
       );
 
-      res.status(200).json({ success: true, data: cancelledOrder });
+      res.status(200).json({
+        success: true,
+        data: await populateOrderForAdmin(cancelledOrder._id),
+      });
       return;
     }
 
     order.status = status;
     await order.save();
 
-    res.status(200).json({ success: true, data: order });
+    res.status(200).json({
+      success: true,
+      data: await populateOrderForAdmin(order._id),
+    });
   }
 );
 
