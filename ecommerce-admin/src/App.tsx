@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import ProductBulkUpload from "./pages/ProductBulkUpload";
+import Orders from "./pages/Orders";
 import Users from "./pages/Users";
 
 import AdminLayout from "./layouts/AdminLayout";
@@ -38,6 +39,11 @@ function App() {
           <Route
             path="/products/bulk"
             element={<ProductBulkUpload />}
+          />
+
+          <Route
+            path="/orders"
+            element={<Orders />}
           />
 
           <Route
